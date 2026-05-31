@@ -148,6 +148,16 @@ function parseBundleId(output: string): string | null {
   return matches?.at(-1) ?? null;
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function parseSimulatorId(output: string, simulatorName: string): string | null {
+  const escapedName = escapeRegExp(simulatorName);
+  const match = output.match(new RegExp(`-\\s*${escapedName}\\s*\\(([A-Fa-f0-9-]{36})\\)`));
+  return match?.[1] ?? null;
+}
+
 function logCodexEvent(event: unknown, redactor: Redactor): void {
   const typed = event as {
     type?: string;
@@ -242,7 +252,24 @@ export async function runCaseWithSdk(
   mkdirSync(path.resolve(cwd, config.reports.output_dir), { recursive: true });
   const startedAt = new Date().toISOString();
 
-  const build = await runProcess("xcodebuildmcp", buildArgs(config), {
+  const simulatorList = await runProcess("xcodebuildmcp", ["simulator", "list"], {
+    cwd,
+    env: process.env,
+    verbose,
+    redactor,
+    timeoutMs: 60 * 1000,
+  });
+  const simulatorId = parseSimulatorId(combinedOutput(simulatorList), config.ios.simulator);
+  if (simulatorList.status !== 0 || !simulatorId) {
+    const detail = redactor.redact(
+      simulatorList.timedOut
+        ? "Timed out while resolving the simulator id."
+        : combinedOutput(simulatorList) || `Could not find simulator named ${config.ios.simulator}.`,
+    );
+    return blockedRecord(qaCase, startedAt, "The simulator id could not be resolved.", detail);
+  }
+
+  const build = await runProcess("xcodebuildmcp", buildArgs(config, simulatorId), {
     cwd,
     env: process.env,
     verbose,
@@ -257,7 +284,7 @@ export async function runCaseWithSdk(
     return blockedRecord(qaCase, startedAt, "The app could not be built before QA execution.", detail);
   }
 
-  const appPathResult = await runProcess("xcodebuildmcp", getAppPathArgs(config), {
+  const appPathResult = await runProcess("xcodebuildmcp", getAppPathArgs(config, simulatorId), {
     cwd,
     env: process.env,
     verbose,
@@ -274,7 +301,7 @@ export async function runCaseWithSdk(
     return blockedRecord(qaCase, startedAt, "The built app path could not be resolved.", detail);
   }
 
-  const install = await runProcess("xcodebuildmcp", installArgs(config, appPath), {
+  const install = await runProcess("xcodebuildmcp", installArgs(config, appPath, simulatorId), {
     cwd,
     env: process.env,
     verbose,
@@ -308,7 +335,7 @@ export async function runCaseWithSdk(
     }
   }
 
-  const launch = await runProcess("xcodebuildmcp", launchArgs(config, bundleId), {
+  const launch = await runProcess("xcodebuildmcp", launchArgs(config, bundleId, simulatorId), {
     cwd,
     env: process.env,
     verbose,
@@ -340,7 +367,7 @@ export async function runCaseWithSdk(
       ...(config.codex.model === "default" ? {} : { model: config.codex.model }),
     });
 
-    const prompt = buildCodexPrompt(config, qaCase);
+    const prompt = buildCodexPrompt(config, qaCase, { simulatorId, bundleId });
     let rawResponse: string;
 
     if (verbose) {

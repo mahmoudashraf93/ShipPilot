@@ -1,7 +1,16 @@
 import type { CodexPilotConfig } from "../config/schema.js";
 import type { ResolvedCase } from "../cases/resolveEnv.js";
 
-export function buildCodexPrompt(config: CodexPilotConfig, qaCase: ResolvedCase): string {
+export type PromptRuntimeContext = {
+  simulatorId: string;
+  bundleId: string;
+};
+
+export function buildCodexPrompt(
+  config: CodexPilotConfig,
+  qaCase: ResolvedCase,
+  runtime: PromptRuntimeContext,
+): string {
   const projectRef = config.ios.project
     ? `project ${config.ios.project}`
     : `workspace ${config.ios.workspace}`;
@@ -23,12 +32,15 @@ export function buildCodexPrompt(config: CodexPilotConfig, qaCase: ResolvedCase)
     "Available simulator backend:",
     "- Use xcodebuildmcp CLI for UI automation.",
     `- App target: ${projectRef}, scheme ${config.ios.scheme}, simulator ${config.ios.simulator}.`,
+    `- The app is already built, installed, and launched with bundle id ${runtime.bundleId}.`,
+    `- Use this simulator id for all UI commands: ${runtime.simulatorId}.`,
+    "- Do not run xcodebuildmcp simulator list unless a command fails because this simulator id is invalid.",
     "- Useful commands include:",
-    "  xcodebuildmcp simulator list",
-    "  xcodebuildmcp simulator snapshot-ui --simulator-id <UDID>",
-    "  xcodebuildmcp ui-automation tap --simulator-id <UDID> --x <x> --y <y>",
-    "  xcodebuildmcp ui-automation type-text --simulator-id <UDID> --text <text>",
-    "  xcodebuildmcp simulator screenshot --simulator-id <UDID> --return-format path",
+    `  xcodebuildmcp simulator snapshot-ui --simulator-id ${runtime.simulatorId}`,
+    `  xcodebuildmcp ui-automation tap --simulator-id ${runtime.simulatorId} --label <label>`,
+    `  xcodebuildmcp ui-automation tap --simulator-id ${runtime.simulatorId} --x <x> --y <y>`,
+    `  xcodebuildmcp ui-automation type-text --simulator-id ${runtime.simulatorId} --text <text>`,
+    `  xcodebuildmcp simulator screenshot --simulator-id ${runtime.simulatorId} --return-format path`,
     "",
     "Credential handling:",
     "- The QA case may reference environment placeholders such as ${TEST_EMAIL}.",

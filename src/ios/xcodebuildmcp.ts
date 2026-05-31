@@ -27,36 +27,49 @@ function addProjectOrWorkspace(args: string[], config: CodexPilotConfig): string
   return args;
 }
 
-export function buildArgs(config: CodexPilotConfig): string[] {
+function addSimulator(args: string[], config: CodexPilotConfig, simulatorId?: string): string[] {
+  if (simulatorId) {
+    args.push("--simulator-id", simulatorId);
+  } else {
+    args.push("--simulator-name", config.ios.simulator);
+  }
+  return args;
+}
+
+export function buildArgs(config: CodexPilotConfig, simulatorId?: string): string[] {
   return addProjectOrWorkspace(
-    [
+    addSimulator(
+      [
       "simulator",
       "build",
       "--scheme",
       config.ios.scheme,
-      "--simulator-name",
-      config.ios.simulator,
       "--configuration",
       config.ios.configuration,
     ],
+      config,
+      simulatorId,
+    ),
     config,
   );
 }
 
-export function getAppPathArgs(config: CodexPilotConfig): string[] {
+export function getAppPathArgs(config: CodexPilotConfig, simulatorId?: string): string[] {
   return addProjectOrWorkspace(
-    [
+    addSimulator(
+      [
       "simulator",
       "get-app-path",
       "--scheme",
       config.ios.scheme,
       "--platform",
       "iOS Simulator",
-      "--simulator-name",
-      config.ios.simulator,
       "--configuration",
       config.ios.configuration,
     ],
+      config,
+      simulatorId,
+    ),
     config,
   );
 }
@@ -65,12 +78,12 @@ export function getBundleIdArgs(appPath: string): string[] {
   return ["simulator", "get-app-bundle-id", "--app-path", appPath];
 }
 
-export function installArgs(config: CodexPilotConfig, appPath: string): string[] {
-  return ["simulator", "install", "--simulator-name", config.ios.simulator, "--app-path", appPath];
+export function installArgs(config: CodexPilotConfig, appPath: string, simulatorId?: string): string[] {
+  return addSimulator(["simulator", "install", "--app-path", appPath], config, simulatorId);
 }
 
-export function launchArgs(config: CodexPilotConfig, bundleId: string): string[] {
-  return ["simulator", "launch-app", "--simulator-name", config.ios.simulator, "--bundle-id", bundleId];
+export function launchArgs(config: CodexPilotConfig, bundleId: string, simulatorId?: string): string[] {
+  return addSimulator(["simulator", "launch-app", "--bundle-id", bundleId], config, simulatorId);
 }
 
 export function projectFileExists(config: CodexPilotConfig, cwd = process.cwd()): boolean {
