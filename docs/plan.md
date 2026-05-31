@@ -39,6 +39,8 @@ npx codexpilot-ios report --run .codexpilot-ios/run.json
 
 `codex.verbose: true` or `codexpilot-ios run --verbose` streams build output and Codex SDK events for CI debugging. It shows reasoning summaries and tool activity, not private chain-of-thought.
 
+For simulator UI automation, `codex.sandbox: danger-full-access` is required because XcodeBuildMCP must communicate with CoreSimulator services outside the repository workspace.
+
 ## Milestones
 
 1. Create public repo and initial docs.

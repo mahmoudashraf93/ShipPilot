@@ -33,3 +33,7 @@ Values declared in QA case `required_env` are redacted from:
 ## Test Scope
 
 v1 is test-and-report only. It instructs Codex not to edit source files, create patches, commit, push, or open pull requests.
+
+## Simulator Sandbox
+
+XcodeBuildMCP needs access to CoreSimulator services outside the repository workspace. For iOS simulator UI automation, set `codex.sandbox: danger-full-access` and run only in trusted CI contexts such as `workflow_dispatch`, release, schedule, or maintainer-approved workflows.

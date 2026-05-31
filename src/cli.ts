@@ -57,7 +57,7 @@ async function main(): Promise<void> {
   engine: sdk
   auth: api_key
   model: default
-  sandbox: workspace-write
+  sandbox: danger-full-access
   fail_on: failed_or_blocked
   allow_experimental_personal_hosted_auth: false
   verbose: false
@@ -210,7 +210,9 @@ codexpilot-ios run --case qa/login.md
           const resolved = resolveCaseEnv(qaCase);
           const redactor = createRedactor(Object.values(resolved.envValues));
           console.log(`Running ${qaCase.id}: ${qaCase.title}`);
-          records.push(await runCaseWithSdk(config, resolved, redactor, process.cwd(), Boolean(runOptions.verbose)));
+          records.push(
+            await runCaseWithSdk(config, resolved, redactor, process.cwd(), runOptions.verbose ?? config.codex.verbose),
+          );
         }
 
         const report = writeJsonReport(config, records, startedAt);

@@ -33,7 +33,7 @@ codex:
   engine: sdk
   auth: api_key # api_key | access_token | chatgpt_hosted_experimental
   model: default
-  sandbox: workspace-write
+  sandbox: danger-full-access
   fail_on: failed_or_blocked
   verbose: false
   allow_experimental_personal_hosted_auth: false
@@ -56,6 +56,8 @@ reports:
 ```
 
 Use either `ios.project` or `ios.workspace`, not both.
+
+`danger-full-access` is required for simulator UI automation because XcodeBuildMCP needs access to CoreSimulator services outside the repository workspace. Run CodexPilot iOS only in trusted workflows and never with secrets on arbitrary fork PRs.
 
 ## QA Case
 
