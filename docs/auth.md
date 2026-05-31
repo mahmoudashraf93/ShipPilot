@@ -32,7 +32,7 @@ printenv CODEX_ACCESS_TOKEN | codex login --with-access-token
 
 ## `chatgpt_hosted_experimental`
 
-This mode attempts personal ChatGPT subscription auth on GitHub-hosted runners by restoring a pre-authenticated Codex home from a secret.
+This experimental mode restores a pre-authenticated Codex home from a secret. It is intended only for local or explicitly trusted runners.
 
 ```yaml
 codex:
@@ -44,4 +44,4 @@ Required secret:
 
 - `CODEX_HOME_TGZ_BASE64`
 
-This is fragile, sensitive, and not recommended for public fork PR workflows.
+This is fragile, sensitive, and not recommended for hosted CI or public fork PR workflows. Prefer `api_key` with `OPENAI_API_KEY` for generated GitHub Actions workflows.
