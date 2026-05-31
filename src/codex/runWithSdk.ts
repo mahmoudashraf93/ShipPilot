@@ -321,6 +321,22 @@ export async function runCaseWithSdk(
     return blockedRecord(qaCase, startedAt, "The simulator could not be booted before QA execution.", detail);
   }
 
+  const bootStatus = await runProcess("xcrun", ["simctl", "bootstatus", simulatorId, "-b"], {
+    cwd,
+    env: process.env,
+    verbose,
+    redactor,
+    timeoutMs: 3 * 60 * 1000,
+  });
+  if (bootStatus.status !== 0) {
+    const detail = redactor.redact(
+      bootStatus.timedOut
+        ? "Timed out while waiting for the simulator to finish booting."
+        : combinedOutput(bootStatus) || "Unknown simulator bootstatus error",
+    );
+    return blockedRecord(qaCase, startedAt, "The simulator did not finish booting before QA execution.", detail);
+  }
+
   const build = await runProcess("xcodebuildmcp", buildArgs(config, simulatorId), {
     cwd,
     env: process.env,
@@ -395,10 +411,28 @@ export async function runCaseWithSdk(
     timeoutMs: 2 * 60 * 1000,
   });
   if (launch.status !== 0) {
-    const detail = redactor.redact(
-      launch.timedOut ? "Timed out while launching the app." : combinedOutput(launch) || "Unknown launch error",
-    );
-    return blockedRecord(qaCase, startedAt, "The app could not be launched before QA execution.", detail);
+    if (launch.timedOut) {
+      const fallbackLaunch = await runProcess("xcrun", ["simctl", "launch", simulatorId, bundleId], {
+        cwd,
+        env: process.env,
+        verbose,
+        redactor,
+        timeoutMs: 2 * 60 * 1000,
+      });
+      if (fallbackLaunch.status === 0) {
+        console.log("[shippilot] xcodebuildmcp launch timed out; continued after successful simctl launch fallback.");
+      } else {
+        const fallbackDetail = redactor.redact(
+          fallbackLaunch.timedOut
+            ? "Timed out while launching the app with xcodebuildmcp and simctl fallback."
+            : combinedOutput(fallbackLaunch) || combinedOutput(launch) || "Unknown launch error",
+        );
+        return blockedRecord(qaCase, startedAt, "The app could not be launched before QA execution.", fallbackDetail);
+      }
+    } else {
+      const detail = redactor.redact(combinedOutput(launch) || "Unknown launch error");
+      return blockedRecord(qaCase, startedAt, "The app could not be launched before QA execution.", detail);
+    }
   }
 
   const preparedAuth = prepareCodexAuth(config);
