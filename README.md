@@ -4,6 +4,10 @@
 
 # ShipPilot
 
+[![CI](https://github.com/mahmoudashraf93/ShipPilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mahmoudashraf93/ShipPilot/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/shippilot.svg)](https://www.npmjs.com/package/shippilot)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ShipPilot is an open-source agentic QA runner for mobile apps. v1 focuses on iOS simulator testing: teams write Markdown QA cases, run them from GitHub Actions, Bitrise, or local CI, and fail the pipeline when Codex cannot verify expected app behavior.
 
 ShipPilot is intentionally test-and-report only. It does not edit source files, create patches, commit, push, or open pull requests.
@@ -221,7 +225,6 @@ Useful areas to improve:
 
 ## Roadmap
 
-- Publish the first npm package as `shippilot`.
 - Add richer screenshot and log attachments to reports.
 - Add sample app integration tests.
 - Add Bitrise Step packaging.
@@ -233,5 +236,6 @@ Useful areas to improve:
 - [Auth modes](docs/auth.md)
 - [GitHub Actions](docs/github-actions.md)
 - [Bitrise](docs/bitrise.md)
+- [Release process](docs/release.md)
 - [Personal ChatGPT subscription](docs/personal-chatgpt-subscription.md)
 - [Security](docs/security.md)

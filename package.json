@@ -1,6 +1,6 @@
 {
   "name": "shippilot",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Agentic iOS QA runner for Codex, GitHub Actions, and Bitrise",
   "type": "module",
   "license": "MIT",
@@ -20,6 +20,7 @@
     "dist",
     "examples",
     "docs",
+    "CHANGELOG.md",
     "README.md",
     "LICENSE"
   ],
