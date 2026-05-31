@@ -14,7 +14,6 @@ Prerequisites:
 
 - macOS with Xcode for iOS simulator runs.
 - Node.js 20+.
-- XcodeBuildMCP CLI, for example `npm install -g xcodebuildmcp`.
 - One supported Codex auth mode.
 
 ```bash
@@ -143,9 +142,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Install XcodeBuildMCP
-        run: npm install -g xcodebuildmcp
 
       - name: Run ShipPilot
         env:

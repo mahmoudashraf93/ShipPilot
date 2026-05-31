@@ -123,9 +123,6 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install XcodeBuildMCP
-        run: npm install -g xcodebuildmcp
-
       - name: Run ShipPilot
         env:
           OPENAI_API_KEY: \${{ secrets.OPENAI_API_KEY }}

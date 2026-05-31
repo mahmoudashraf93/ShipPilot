@@ -4,7 +4,12 @@ import type { ResolvedCase } from "../cases/resolveEnv.js";
 export type PromptRuntimeContext = {
   simulatorId: string;
   bundleId: string;
+  xcodeBuildMcp: string;
 };
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
 
 export function buildCodexPrompt(
   config: ShipPilotConfig,
@@ -14,6 +19,7 @@ export function buildCodexPrompt(
   const projectRef = config.ios.project
     ? `project ${config.ios.project}`
     : `workspace ${config.ios.workspace}`;
+  const xcodeBuildMcpCommand = shellQuote(runtime.xcodeBuildMcp);
 
   return [
     "You are ShipPilot, an agentic QA runner for iOS simulator testing.",
@@ -27,20 +33,20 @@ export function buildCodexPrompt(
     "- Only inspect and operate the already checked-out app and simulator.",
     "- Treat the expected outcome as a test assertion. If it is not met, return status failed.",
     "- If setup, login, navigation, simulator control, or evidence collection prevents validation, return status blocked.",
-    "- Capture screenshots through xcodebuildmcp when useful and put evidence paths in the final JSON.",
+    "- Capture screenshots through the bundled XcodeBuildMCP command when useful and put evidence paths in the final JSON.",
     "",
     "Available simulator backend:",
-    "- Use xcodebuildmcp CLI for UI automation.",
+    `- Use this bundled XcodeBuildMCP command for UI automation: ${xcodeBuildMcpCommand}`,
     `- App target: ${projectRef}, scheme ${config.ios.scheme}, simulator ${config.ios.simulator}.`,
     `- The app is already built, installed, and launched with bundle id ${runtime.bundleId}.`,
     `- Use this simulator id for all UI commands: ${runtime.simulatorId}.`,
-    "- Do not run xcodebuildmcp simulator list unless a command fails because this simulator id is invalid.",
+    "- Do not run simulator list unless a command fails because this simulator id is invalid.",
     "- Useful commands include:",
-    `  xcodebuildmcp simulator snapshot-ui --simulator-id ${runtime.simulatorId}`,
-    `  xcodebuildmcp ui-automation tap --simulator-id ${runtime.simulatorId} --label <label>`,
-    `  xcodebuildmcp ui-automation tap --simulator-id ${runtime.simulatorId} --x <x> --y <y>`,
-    `  xcodebuildmcp ui-automation type-text --simulator-id ${runtime.simulatorId} --text <text>`,
-    `  xcodebuildmcp simulator screenshot --simulator-id ${runtime.simulatorId} --return-format path`,
+    `  ${xcodeBuildMcpCommand} simulator snapshot-ui --simulator-id ${runtime.simulatorId}`,
+    `  ${xcodeBuildMcpCommand} ui-automation tap --simulator-id ${runtime.simulatorId} --label <label>`,
+    `  ${xcodeBuildMcpCommand} ui-automation tap --simulator-id ${runtime.simulatorId} --x <x> --y <y>`,
+    `  ${xcodeBuildMcpCommand} ui-automation type-text --simulator-id ${runtime.simulatorId} --text <text>`,
+    `  ${xcodeBuildMcpCommand} simulator screenshot --simulator-id ${runtime.simulatorId} --return-format path`,
     "",
     "Credential handling:",
     "- The QA case may reference environment placeholders such as ${TEST_EMAIL}.",

@@ -14,7 +14,7 @@ shippilot run --case qa/login.md
 Requirements:
 
 - macOS stack with Xcode.
-- XcodeBuildMCP installed, for example `npm install -g xcodebuildmcp`.
+- ShipPilot installs its bundled XcodeBuildMCP dependency; no separate XcodeBuildMCP step is needed.
 - App project dependencies installed before the step runs.
 - `OPENAI_API_KEY` or `CODEX_ACCESS_TOKEN` as Bitrise Secrets.
 - App test credentials such as `TEST_EMAIL` and `TEST_PASSWORD`.

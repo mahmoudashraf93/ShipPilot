@@ -1,12 +1,6 @@
 # GitHub Actions
 
-Use macOS runners because iOS simulator testing requires Xcode.
-
-Install XcodeBuildMCP before running ShipPilot if your runner image does not already include it:
-
-```bash
-npm install -g xcodebuildmcp
-```
+Use macOS runners because iOS simulator testing requires Xcode. ShipPilot bundles XcodeBuildMCP through its npm dependencies, so workflows do not install it separately.
 
 ```yaml
 name: ShipPilot QA
@@ -30,9 +24,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Install XcodeBuildMCP
-        run: npm install -g xcodebuildmcp
 
       - name: Run ShipPilot
         env:

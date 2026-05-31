@@ -14,6 +14,7 @@ import {
   getBundleIdArgs,
   installArgs,
   launchArgs,
+  resolveXcodeBuildMcpCommand,
 } from "../ios/xcodebuildmcp.js";
 import { buildCodexPrompt } from "./promptBuilder.js";
 import { codexOutputJsonSchema, parseCodexResult, type CodexCaseResult } from "./outputSchema.js";
@@ -289,8 +290,9 @@ export async function runCaseWithSdk(
 ): Promise<CaseRunRecord> {
   mkdirSync(path.resolve(cwd, config.reports.output_dir), { recursive: true });
   const startedAt = new Date().toISOString();
+  const xcodeBuildMcp = resolveXcodeBuildMcpCommand();
 
-  const simulatorList = await runProcess("xcodebuildmcp", ["simulator", "list"], {
+  const simulatorList = await runProcess(xcodeBuildMcp, ["simulator", "list"], {
     cwd,
     env: process.env,
     verbose,
@@ -307,7 +309,7 @@ export async function runCaseWithSdk(
     return blockedRecord(qaCase, startedAt, "The simulator id could not be resolved.", detail);
   }
 
-  const boot = await runProcess("xcodebuildmcp", bootArgs(config, simulatorId), {
+  const boot = await runProcess(xcodeBuildMcp, bootArgs(config, simulatorId), {
     cwd,
     env: process.env,
     verbose,
@@ -337,7 +339,7 @@ export async function runCaseWithSdk(
     return blockedRecord(qaCase, startedAt, "The simulator did not finish booting before QA execution.", detail);
   }
 
-  const build = await runProcess("xcodebuildmcp", buildArgs(config, simulatorId), {
+  const build = await runProcess(xcodeBuildMcp, buildArgs(config, simulatorId), {
     cwd,
     env: process.env,
     verbose,
@@ -352,7 +354,7 @@ export async function runCaseWithSdk(
     return blockedRecord(qaCase, startedAt, "The app could not be built before QA execution.", detail);
   }
 
-  const appPathResult = await runProcess("xcodebuildmcp", getAppPathArgs(config, simulatorId), {
+  const appPathResult = await runProcess(xcodeBuildMcp, getAppPathArgs(config, simulatorId), {
     cwd,
     env: process.env,
     verbose,
@@ -369,7 +371,7 @@ export async function runCaseWithSdk(
     return blockedRecord(qaCase, startedAt, "The built app path could not be resolved.", detail);
   }
 
-  const install = await runProcess("xcodebuildmcp", installArgs(config, appPath, simulatorId), {
+  const install = await runProcess(xcodeBuildMcp, installArgs(config, appPath, simulatorId), {
     cwd,
     env: process.env,
     verbose,
@@ -385,7 +387,7 @@ export async function runCaseWithSdk(
 
   let bundleId = config.ios.bundle_id ?? null;
   if (!bundleId) {
-    const bundle = await runProcess("xcodebuildmcp", getBundleIdArgs(appPath), {
+    const bundle = await runProcess(xcodeBuildMcp, getBundleIdArgs(appPath), {
       cwd,
       env: process.env,
       verbose,
@@ -403,7 +405,7 @@ export async function runCaseWithSdk(
     }
   }
 
-  const launch = await runProcess("xcodebuildmcp", launchArgs(config, bundleId, simulatorId), {
+  const launch = await runProcess(xcodeBuildMcp, launchArgs(config, bundleId, simulatorId), {
     cwd,
     env: process.env,
     verbose,
@@ -453,7 +455,7 @@ export async function runCaseWithSdk(
       ...(config.codex.model === "default" ? {} : { model: config.codex.model }),
     });
 
-    const prompt = buildCodexPrompt(config, qaCase, { simulatorId, bundleId });
+    const prompt = buildCodexPrompt(config, qaCase, { simulatorId, bundleId, xcodeBuildMcp });
     let rawResponse: string;
 
     if (verbose) {

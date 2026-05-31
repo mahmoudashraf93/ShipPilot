@@ -38,6 +38,7 @@
     "commander": "^14.0.2",
     "fast-glob": "^3.3.3",
     "gray-matter": "^4.0.3",
+    "xcodebuildmcp": "^2.5.2",
     "yaml": "^2.8.1",
     "zod": "^4.1.13"
   },
