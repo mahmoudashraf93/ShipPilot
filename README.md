@@ -1,30 +1,29 @@
+<p align="center">
+  <img src="assets/shippilot-icon.png" alt="ShipPilot icon" width="180">
+</p>
+
 # ShipPilot
 
-ShipPilot is an open-source agentic QA runner for iOS apps. It lets teams write Markdown QA cases, run them from GitHub Actions, Bitrise, or local CI, and fail the pipeline when Codex cannot verify the expected app behavior.
+ShipPilot is an open-source agentic QA runner for mobile apps. v1 focuses on iOS simulator testing: teams write Markdown QA cases, run them from GitHub Actions, Bitrise, or local CI, and fail the pipeline when Codex cannot verify expected app behavior.
 
-The v1 runner is intentionally test-and-report only. It does not edit source files, create patches, commit, push, or open pull requests.
+ShipPilot is intentionally test-and-report only. It does not edit source files, create patches, commit, push, or open pull requests.
 
 ## Quick Start
 
 Prerequisites:
 
-- macOS with Xcode for simulator runs.
+- macOS with Xcode for iOS simulator runs.
 - Node.js 20+.
 - XcodeBuildMCP CLI, for example `npm install -g xcodebuildmcp`.
+- One supported Codex auth mode.
 
 ```bash
 npx shippilot init
 npx shippilot doctor
-npx shippilot run --case qa/login.md
+npx shippilot run --case qa/login.md --verbose
 ```
 
-Add secrets to CI for app test credentials and one Codex auth mode:
-
-- `OPENAI_API_KEY` for hosted CI and OpenAI Platform billing.
-- `CODEX_ACCESS_TOKEN` for trusted Business/Enterprise automation.
-- `CODEX_HOME_TGZ_BASE64` only for the experimental personal ChatGPT hosted-runner flow.
-
-## Config
+## Usage Guide
 
 ShipPilot reads `shippilot.yml` by default.
 
@@ -55,11 +54,11 @@ reports:
   logs: true
 ```
 
-Use either `ios.project` or `ios.workspace`, not both.
+Use either `ios.project` or `ios.workspace`, not both. Add `ios.bundle_id` when available; it avoids a separate bundle-id discovery step during CI.
 
-`danger-full-access` is required for simulator UI automation because XcodeBuildMCP needs access to CoreSimulator services outside the repository workspace. Run ShipPilot only in trusted workflows and never with secrets on arbitrary fork PRs.
+### QA Cases
 
-## QA Case
+QA cases are Markdown files with YAML front matter:
 
 ```md
 ---
@@ -74,25 +73,52 @@ tags:
 ---
 
 Launch the app.
+Dismiss onboarding, permission prompts, or paywalls if they appear.
 Enter `${TEST_EMAIL}` and `${TEST_PASSWORD}`.
 Tap Log In.
 Expect the Home screen to be visible.
 ```
 
-Environment placeholders are resolved at runtime and redacted from prompts, logs, reports, and artifacts.
+Environment placeholders are resolved at runtime and redacted from prompts, logs, reports, and artifacts. Declare every secret placeholder in `required_env`; missing required variables fail setup before the agent runs.
 
-## CI Failure Semantics
+### Running Cases
 
-ShipPilot exits like a test runner:
+```bash
+npx shippilot doctor
+npx shippilot run --case qa/login.md
+npx shippilot run --cases qa/
+```
 
-- `0`: all cases passed
-- `1`: at least one case failed
-- `2`: setup/auth/project/simulator/config error
-- `3`: at least one case was blocked or inconclusive
+Use verbose mode while developing or debugging CI:
 
-Set `codex.fail_on: never` for report-only mode.
+```bash
+npx shippilot run --case qa/login.md --verbose
+```
 
-Use `codex.verbose: true` or `shippilot run --verbose` to stream XcodeBuildMCP output and Codex SDK events in CI logs. Verbose mode shows progress, tool calls, command executions, reasoning summaries, errors, and token usage, but not private model chain-of-thought.
+Verbose mode streams XcodeBuildMCP output and Codex SDK events, including progress, tool calls, command executions, reasoning summaries, errors, and token usage. It does not expose private model chain-of-thought.
+
+## Auth Modes
+
+Choose one auth mode:
+
+- `api_key`: uses `OPENAI_API_KEY`. Recommended for hosted CI and open-source projects.
+- `access_token`: uses `CODEX_ACCESS_TOKEN`. Recommended for trusted Business/Enterprise automation.
+- `chatgpt_hosted_experimental`: restores a pre-authenticated Codex home from `CODEX_HOME_TGZ_BASE64`. This is only for experimental personal ChatGPT subscription use on trusted runners.
+
+The personal ChatGPT hosted-runner path is sensitive and fragile. Do not cache or upload restored auth directories, and do not run it on arbitrary fork PRs.
+
+## Simulator Access And Security
+
+For iOS simulator UI automation, use:
+
+```yaml
+codex:
+  sandbox: danger-full-access
+```
+
+XcodeBuildMCP needs access to CoreSimulator services outside the repository workspace. More restrictive sandbox modes can build the app but fail once the agent tries to inspect UI, tap controls, or capture screenshots.
+
+Run ShipPilot only in trusted workflows when secrets are present. For open-source repositories, prefer `workflow_dispatch`, releases, schedules, or maintainer-approved workflows. Use `actions/checkout` with `persist-credentials: false`.
 
 ## GitHub Actions
 
@@ -118,6 +144,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install XcodeBuildMCP
+        run: npm install -g xcodebuildmcp
+
       - name: Run ShipPilot
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -127,7 +156,7 @@ jobs:
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
         run: |
           npx shippilot doctor
-          npx shippilot run --case qa/login.md
+          npx shippilot run --case qa/login.md --verbose
 
       - name: Upload ShipPilot report
         if: always()
@@ -135,11 +164,25 @@ jobs:
         with:
           name: shippilot-report
           path: .shippilot/
+          include-hidden-files: true
 ```
 
-Do not run secret-backed workflows on arbitrary fork PRs.
+## Bitrise
 
-## Reports
+Use a macOS stack with Xcode and add a Script Step:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+npm install -g shippilot
+shippilot doctor
+shippilot run --case qa/login.md --verbose
+```
+
+Upload `.shippilot/` as build artifacts so failed QA runs still leave reports and screenshots.
+
+## Reports And Exit Codes
 
 Reports are written to `.shippilot/`:
 
@@ -151,6 +194,42 @@ Reports are written to `.shippilot/`:
   logs/
   screenshots/
 ```
+
+ShipPilot exits like a test runner:
+
+- `0`: all cases passed
+- `1`: at least one case failed
+- `2`: setup/auth/project/simulator/config error
+- `3`: at least one case was blocked or inconclusive
+
+Set `codex.fail_on: never` for report-only mode.
+
+## Contribution Guide
+
+Contributions should keep ShipPilot test-and-report focused. Avoid features that let the CI agent edit source, commit, push, or open PRs unless that behavior is explicitly designed behind a separate mode.
+
+Before opening a PR:
+
+```bash
+npm run build
+npm test
+```
+
+Useful areas to improve:
+
+- config validation and clearer doctor checks
+- QA case parsing and secret redaction
+- report quality and artifact collection
+- XcodeBuildMCP integration robustness
+- CI examples for common hosted runners
+
+## Roadmap
+
+- Publish the first npm package as `shippilot`.
+- Add richer screenshot and log attachments to reports.
+- Add sample app integration tests.
+- Add Bitrise Step packaging.
+- Add Android support.
 
 ## Documentation
 
