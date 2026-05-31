@@ -11,7 +11,11 @@ import { assertTrustedRunnerForSecrets } from "../src/security/trustedRunner.js"
 import { summarizeStatus } from "../src/reports/jsonReport.js";
 import { buildCodexPrompt } from "../src/codex/promptBuilder.js";
 import { buildCodexCliConfig, buildCodexProcessEnv, isSimulatorAlreadyBooted } from "../src/codex/runWithSdk.js";
-import { buildSimulatorBridgeCommand, simulatorBridgeToolNames } from "../src/ios/simulatorBridge.js";
+import {
+  buildSimulatorBridgeCommand,
+  simulatorBridgeToolInputSchemas,
+  simulatorBridgeToolNames,
+} from "../src/ios/simulatorBridge.js";
 import { renderMarkdownReport } from "../src/reports/markdownReport.js";
 import { renderJunitReport } from "../src/reports/junitReport.js";
 import type { RunReport } from "../src/reports/jsonReport.js";
@@ -138,6 +142,17 @@ describe("simulator bridge commands", () => {
     bundleId: "com.example.App",
     envValues: { TEST_EMAIL: "user@example.com" },
   };
+
+  it("publishes explicit input schemas for interactive tools", () => {
+    expect(Object.keys(simulatorBridgeToolInputSchemas.tap)).toEqual(
+      expect.arrayContaining(["label", "id", "x", "y", "preDelay", "postDelay"]),
+    );
+    expect(Object.keys(simulatorBridgeToolInputSchemas.type_text)).toEqual(["text"]);
+    expect(Object.keys(simulatorBridgeToolInputSchemas.type_env)).toEqual(["name"]);
+    expect(Object.keys(simulatorBridgeToolInputSchemas.swipe)).toEqual(
+      expect.arrayContaining(["x1", "y1", "x2", "y2"]),
+    );
+  });
 
   it("injects fixed simulator and bundle ids", () => {
     expect(buildSimulatorBridgeCommand("snapshot_ui", {}, context).args).toEqual([

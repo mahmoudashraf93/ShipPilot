@@ -3,7 +3,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { URL } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { z } from "zod";
+import { z, type ZodRawShape } from "zod";
 import type { Redactor } from "../security/redact.js";
 
 export const simulatorBridgeToolNames = [
@@ -48,6 +48,44 @@ type BridgeCommand = {
 };
 
 const buttonTypes = ["apple-pay", "home", "lock", "side-button", "siri"] as const;
+
+const optionalDelayInputSchema = {
+  preDelay: z.number().optional().describe("Seconds to wait before the action."),
+  postDelay: z.number().optional().describe("Seconds to wait after the action."),
+} satisfies ZodRawShape;
+
+export const simulatorBridgeToolInputSchemas = {
+  snapshot_ui: {},
+  screenshot: {},
+  tap: {
+    label: z.string().optional().describe("Accessibility label to tap. Use either label, id, or x/y coordinates."),
+    id: z.string().optional().describe("Accessibility identifier to tap. Use either label, id, or x/y coordinates."),
+    x: z.number().optional().describe("Screen x coordinate. Must be provided together with y."),
+    y: z.number().optional().describe("Screen y coordinate. Must be provided together with x."),
+    ...optionalDelayInputSchema,
+  },
+  type_text: {
+    text: z.string().min(1).describe("Non-secret text to type into the focused simulator input."),
+  },
+  type_env: {
+    name: z.string().min(1).describe("Name of a QA case required_env variable to type without revealing its value."),
+  },
+  swipe: {
+    x1: z.number().describe("Swipe start x coordinate."),
+    y1: z.number().describe("Swipe start y coordinate."),
+    x2: z.number().describe("Swipe end x coordinate."),
+    y2: z.number().describe("Swipe end y coordinate."),
+    duration: z.number().optional().describe("Swipe duration in seconds."),
+    delta: z.number().optional().describe("Optional scroll delta."),
+    ...optionalDelayInputSchema,
+  },
+  button: {
+    buttonType: z.enum(buttonTypes).describe("Simulator hardware button to press."),
+    duration: z.number().optional().describe("Button press duration in seconds."),
+  },
+  stop_app: {},
+  launch_app: {},
+} satisfies Record<SimulatorBridgeToolName, ZodRawShape>;
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -244,16 +282,15 @@ async function executeBridgeTool(
 
 function createMcpServer(context: SimulatorBridgeContext): McpServer {
   const server = new McpServer({ name: "shippilot-simulator", version: "0.0.2" });
-  const anyInput = z.object({}).passthrough();
 
   for (const toolName of simulatorBridgeToolNames) {
     server.registerTool(
       toolName,
       {
         description: `ShipPilot allowlisted simulator tool: ${toolName}`,
-        inputSchema: anyInput,
+        inputSchema: simulatorBridgeToolInputSchemas[toolName],
       },
-      async (input) => executeBridgeTool(toolName, input, context),
+      async (input: unknown) => executeBridgeTool(toolName, input as Record<string, unknown>, context),
     );
   }
 
