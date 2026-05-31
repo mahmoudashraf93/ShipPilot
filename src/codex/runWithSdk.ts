@@ -155,7 +155,21 @@ function escapeRegExp(value: string): string {
 function parseSimulatorId(output: string, simulatorName: string): string | null {
   const escapedName = escapeRegExp(simulatorName);
   const match = output.match(new RegExp(`-\\s*${escapedName}\\s*\\(([A-Fa-f0-9-]{36})\\)`));
-  return match?.[1] ?? null;
+  if (match?.[1]) return match[1];
+
+  const lines = output.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    if (!lines[index].includes(simulatorName)) continue;
+    const sameLine = lines[index].match(/([A-Fa-f0-9-]{36})/);
+    if (sameLine?.[1]) return sameLine[1];
+
+    for (const nextLine of lines.slice(index + 1, index + 4)) {
+      const udidLine = nextLine.match(/UDID:\s*([A-Fa-f0-9-]{36})/);
+      if (udidLine?.[1]) return udidLine[1];
+    }
+  }
+
+  return null;
 }
 
 function logCodexEvent(event: unknown, redactor: Redactor): void {
