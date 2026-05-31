@@ -40,6 +40,7 @@ codex:
 
 ios:
   project: MyApp.xcodeproj
+  bundle_id:
   scheme: MyApp
   simulator: iPhone 17 Pro
   backend: xcodebuildmcp

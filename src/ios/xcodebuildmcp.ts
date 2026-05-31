@@ -17,18 +17,7 @@ export function runCommand(command: string, args: string[], cwd = process.cwd())
   };
 }
 
-export function buildRunArgs(config: CodexPilotConfig): string[] {
-  const args = [
-    "simulator",
-    "build-and-run",
-    "--scheme",
-    config.ios.scheme,
-    "--simulator-name",
-    config.ios.simulator,
-    "--configuration",
-    config.ios.configuration,
-  ];
-
+function addProjectOrWorkspace(args: string[], config: CodexPilotConfig): string[] {
   if (config.ios.project) {
     args.push("--project-path", config.ios.project);
   } else if (config.ios.workspace) {
@@ -36,6 +25,52 @@ export function buildRunArgs(config: CodexPilotConfig): string[] {
   }
 
   return args;
+}
+
+export function buildArgs(config: CodexPilotConfig): string[] {
+  return addProjectOrWorkspace(
+    [
+      "simulator",
+      "build",
+      "--scheme",
+      config.ios.scheme,
+      "--simulator-name",
+      config.ios.simulator,
+      "--configuration",
+      config.ios.configuration,
+    ],
+    config,
+  );
+}
+
+export function getAppPathArgs(config: CodexPilotConfig): string[] {
+  return addProjectOrWorkspace(
+    [
+      "simulator",
+      "get-app-path",
+      "--scheme",
+      config.ios.scheme,
+      "--platform",
+      "iOS Simulator",
+      "--simulator-name",
+      config.ios.simulator,
+      "--configuration",
+      config.ios.configuration,
+    ],
+    config,
+  );
+}
+
+export function getBundleIdArgs(appPath: string): string[] {
+  return ["simulator", "get-app-bundle-id", "--app-path", appPath];
+}
+
+export function installArgs(config: CodexPilotConfig, appPath: string): string[] {
+  return ["simulator", "install", "--simulator-name", config.ios.simulator, "--app-path", appPath];
+}
+
+export function launchArgs(config: CodexPilotConfig, bundleId: string): string[] {
+  return ["simulator", "launch-app", "--simulator-name", config.ios.simulator, "--bundle-id", bundleId];
 }
 
 export function projectFileExists(config: CodexPilotConfig, cwd = process.cwd()): boolean {

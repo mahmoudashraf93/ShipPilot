@@ -1,12 +1,19 @@
 import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { Codex } from "@openai/codex-sdk";
 import type { CodexPilotConfig } from "../config/schema.js";
 import type { ResolvedCase } from "../cases/resolveEnv.js";
 import type { Redactor } from "../security/redact.js";
 import { prepareCodexAuth } from "../auth/prepareCodexHome.js";
-import { buildRunArgs } from "../ios/xcodebuildmcp.js";
+import {
+  buildArgs,
+  getAppPathArgs,
+  getBundleIdArgs,
+  installArgs,
+  launchArgs,
+} from "../ios/xcodebuildmcp.js";
 import { buildCodexPrompt } from "./promptBuilder.js";
 import { codexOutputJsonSchema, parseCodexResult, type CodexCaseResult } from "./outputSchema.js";
 
@@ -21,6 +28,7 @@ type ProcessResult = {
   status: number | null;
   stdout: string;
   stderr: string;
+  timedOut: boolean;
 };
 
 function runProcess(
@@ -31,6 +39,7 @@ function runProcess(
     env: NodeJS.ProcessEnv;
     verbose: boolean;
     redactor: Redactor;
+    timeoutMs?: number;
   },
 ): Promise<ProcessResult> {
   return new Promise((resolve, reject) => {
@@ -46,6 +55,13 @@ function runProcess(
 
     let stdout = "";
     let stderr = "";
+    let timedOut = false;
+    const timer = options.timeoutMs
+      ? setTimeout(() => {
+          timedOut = true;
+          child.kill("SIGTERM");
+        }, options.timeoutMs)
+      : undefined;
 
     child.stdout.on("data", (chunk: Buffer) => {
       const text = chunk.toString("utf8");
@@ -59,9 +75,77 @@ function runProcess(
       if (options.verbose) process.stderr.write(options.redactor.redact(text));
     });
 
-    child.on("error", reject);
-    child.on("close", (status) => resolve({ status, stdout, stderr }));
+    child.on("error", (error) => {
+      if (timer) clearTimeout(timer);
+      reject(error);
+    });
+    child.on("close", (status) => {
+      if (timer) clearTimeout(timer);
+      resolve({ status, stdout, stderr, timedOut });
+    });
   });
+}
+
+function combinedOutput(result: ProcessResult): string {
+  return [result.stdout, result.stderr].filter(Boolean).join("\n");
+}
+
+function blockedRecord(
+  qaCase: ResolvedCase,
+  startedAt: string,
+  summary: string,
+  observed: string,
+): CaseRunRecord {
+  return {
+    startedAt,
+    completedAt: new Date().toISOString(),
+    rawFinalResponse: "",
+    result: {
+      status: "blocked",
+      case_id: qaCase.id,
+      title: qaCase.title,
+      summary,
+      executed_steps: [summary],
+      expected: qaCase.body,
+      observed,
+      failure_reason: null,
+      blocked_reason: observed,
+      confidence: "high",
+      evidence: [],
+    },
+  };
+}
+
+function expandTilde(value: string): string {
+  return value.startsWith("~/") ? path.join(os.homedir(), value.slice(2)) : value;
+}
+
+function parseJsonValue(output: string, keys: string[]): string | null {
+  try {
+    const parsed = JSON.parse(output) as Record<string, unknown>;
+    for (const key of keys) {
+      const value = parsed[key];
+      if (typeof value === "string" && value.length > 0) return value;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function parseAppPath(output: string): string | null {
+  const jsonValue = parseJsonValue(output, ["appPath", "app_path", "path"]);
+  if (jsonValue) return expandTilde(jsonValue);
+  const matches = output.match(/(?:~\/|\/)[^\n"']+?\.app/g);
+  const match = matches?.at(-1);
+  return match ? expandTilde(match.trim()) : null;
+}
+
+function parseBundleId(output: string): string | null {
+  const jsonValue = parseJsonValue(output, ["bundleId", "bundle_id", "bundleIdentifier"]);
+  if (jsonValue) return jsonValue;
+  const matches = output.match(/[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g);
+  return matches?.at(-1) ?? null;
 }
 
 function logCodexEvent(event: unknown, redactor: Redactor): void {
@@ -158,33 +242,84 @@ export async function runCaseWithSdk(
   mkdirSync(path.resolve(cwd, config.reports.output_dir), { recursive: true });
   const startedAt = new Date().toISOString();
 
-  const buildRun = await runProcess("xcodebuildmcp", buildRunArgs(config), {
+  const build = await runProcess("xcodebuildmcp", buildArgs(config), {
     cwd,
     env: process.env,
     verbose,
     redactor,
+    timeoutMs: 20 * 60 * 1000,
   });
 
-  if (buildRun.status !== 0) {
-    const detail = redactor.redact(buildRun.stderr || buildRun.stdout || "Unknown build/run error");
-    return {
-      startedAt,
-      completedAt: new Date().toISOString(),
-      rawFinalResponse: "",
-      result: {
-        status: "blocked",
-        case_id: qaCase.id,
-        title: qaCase.title,
-        summary: "The app could not be built and launched before QA execution.",
-        executed_steps: ["Attempted to build and launch the app with xcodebuildmcp"],
-        expected: qaCase.body,
-        observed: detail,
-        failure_reason: null,
-        blocked_reason: detail,
-        confidence: "high",
-        evidence: [],
-      },
-    };
+  if (build.status !== 0) {
+    const detail = redactor.redact(
+      build.timedOut ? "Timed out while building the app." : combinedOutput(build) || "Unknown build error",
+    );
+    return blockedRecord(qaCase, startedAt, "The app could not be built before QA execution.", detail);
+  }
+
+  const appPathResult = await runProcess("xcodebuildmcp", getAppPathArgs(config), {
+    cwd,
+    env: process.env,
+    verbose,
+    redactor,
+    timeoutMs: 2 * 60 * 1000,
+  });
+  const appPath = parseAppPath(combinedOutput(appPathResult));
+  if (appPathResult.status !== 0 || !appPath) {
+    const detail = redactor.redact(
+      appPathResult.timedOut
+        ? "Timed out while resolving the app path."
+        : combinedOutput(appPathResult) || "Could not parse app path.",
+    );
+    return blockedRecord(qaCase, startedAt, "The built app path could not be resolved.", detail);
+  }
+
+  const install = await runProcess("xcodebuildmcp", installArgs(config, appPath), {
+    cwd,
+    env: process.env,
+    verbose,
+    redactor,
+    timeoutMs: 5 * 60 * 1000,
+  });
+  if (install.status !== 0) {
+    const detail = redactor.redact(
+      install.timedOut ? "Timed out while installing the app." : combinedOutput(install) || "Unknown install error",
+    );
+    return blockedRecord(qaCase, startedAt, "The app could not be installed before QA execution.", detail);
+  }
+
+  let bundleId = config.ios.bundle_id ?? null;
+  if (!bundleId) {
+    const bundle = await runProcess("xcodebuildmcp", getBundleIdArgs(appPath), {
+      cwd,
+      env: process.env,
+      verbose,
+      redactor,
+      timeoutMs: 60 * 1000,
+    });
+    bundleId = parseBundleId(combinedOutput(bundle));
+    if (bundle.status !== 0 || !bundleId) {
+      const detail = redactor.redact(
+        bundle.timedOut
+          ? "Timed out while resolving the bundle id."
+          : combinedOutput(bundle) || "Could not parse bundle id.",
+      );
+      return blockedRecord(qaCase, startedAt, "The app bundle id could not be resolved.", detail);
+    }
+  }
+
+  const launch = await runProcess("xcodebuildmcp", launchArgs(config, bundleId), {
+    cwd,
+    env: process.env,
+    verbose,
+    redactor,
+    timeoutMs: 2 * 60 * 1000,
+  });
+  if (launch.status !== 0) {
+    const detail = redactor.redact(
+      launch.timedOut ? "Timed out while launching the app." : combinedOutput(launch) || "Unknown launch error",
+    );
+    return blockedRecord(qaCase, startedAt, "The app could not be launched before QA execution.", detail);
   }
 
   const preparedAuth = prepareCodexAuth(config);

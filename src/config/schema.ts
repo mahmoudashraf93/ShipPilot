@@ -28,6 +28,7 @@ export const configSchema = z
       project: z.string().optional().nullable(),
       workspace: z.string().optional().nullable(),
       scheme: z.string().min(1),
+      bundle_id: z.string().optional().nullable(),
       simulator: z.string().default("iPhone 17 Pro"),
       backend: z.literal("xcodebuildmcp").default("xcodebuildmcp"),
       configuration: z.string().default("Debug"),
