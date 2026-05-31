@@ -76,7 +76,6 @@ reports:
   json: true
   junit: true
   screenshots: true
-  logs: true
 `,
     );
 

@@ -15,8 +15,7 @@ ShipPilot is designed for open-source CI, so secret handling is strict by defaul
 Values declared in QA case `required_env` are redacted from:
 
 - generated prompts
-- SDK output
-- logs
+- verbose terminal output
 - Markdown reports
 - JSON reports
 - JUnit reports

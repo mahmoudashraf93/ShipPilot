@@ -1,6 +1,6 @@
 # ShipPilot Full Project Plan
 
-ShipPilot is an SDK-first agentic iOS QA runner. Teams write Markdown QA cases, configure an iOS project and simulator, choose a Codex auth mode, and run the tool from GitHub Actions, Bitrise, or local CI. Codex drives the app through an iOS simulator, verifies expected outcomes, captures screenshots/logs, writes reports, and fails CI when a case fails.
+ShipPilot is an SDK-first agentic iOS QA runner. Teams write Markdown QA cases, configure an iOS project and simulator, choose a Codex auth mode, and run the tool from GitHub Actions, Bitrise, or local CI. Codex drives the app through an iOS simulator, verifies expected outcomes, captures screenshot evidence when available, writes reports, and fails CI when a case fails.
 
 ## Core Design
 

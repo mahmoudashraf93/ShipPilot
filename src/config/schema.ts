@@ -40,7 +40,6 @@ export const configSchema = z
         json: z.boolean().default(true),
         junit: z.boolean().default(true),
         screenshots: z.boolean().default(true),
-        logs: z.boolean().default(true),
       })
       .default({
         output_dir: ".shippilot",
@@ -48,7 +47,6 @@ export const configSchema = z
         json: true,
         junit: true,
         screenshots: true,
-        logs: true,
       }),
   })
   .superRefine((value, context) => {
