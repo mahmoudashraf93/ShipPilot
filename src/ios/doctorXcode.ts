@@ -8,7 +8,7 @@ export function doctorXcode(config: CodexPilotConfig, cwd = process.cwd()): Chec
   const checks: CheckResult[] = [
     runCommand("xcodebuild", ["-version"], cwd),
     runCommand("xcodebuildmcp", ["--help"], cwd),
-    runCommand("xcodebuildmcp", ["simulator", "list-sims"], cwd),
+    runCommand("xcodebuildmcp", ["simulator", "list"], cwd),
   ];
 
   checks.push({

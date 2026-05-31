@@ -20,11 +20,13 @@ export function runCommand(command: string, args: string[], cwd = process.cwd())
 export function buildRunArgs(config: CodexPilotConfig): string[] {
   const args = [
     "simulator",
-    "build-run-sim",
+    "build-and-run",
     "--scheme",
     config.ios.scheme,
     "--simulator-name",
     config.ios.simulator,
+    "--configuration",
+    config.ios.configuration,
   ];
 
   if (config.ios.project) {
