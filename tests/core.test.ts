@@ -10,7 +10,7 @@ import { createRedactor } from "../src/security/redact.js";
 import { assertTrustedRunnerForSecrets } from "../src/security/trustedRunner.js";
 import { summarizeStatus } from "../src/reports/jsonReport.js";
 import { buildCodexPrompt } from "../src/codex/promptBuilder.js";
-import { buildCodexCliConfig, buildCodexProcessEnv } from "../src/codex/runWithSdk.js";
+import { buildCodexCliConfig, buildCodexProcessEnv, isSimulatorAlreadyBooted } from "../src/codex/runWithSdk.js";
 import { buildSimulatorBridgeCommand, simulatorBridgeToolNames } from "../src/ios/simulatorBridge.js";
 import { renderMarkdownReport } from "../src/reports/markdownReport.js";
 import { renderJunitReport } from "../src/reports/junitReport.js";
@@ -182,6 +182,19 @@ describe("simulator bridge commands", () => {
     expect(command.successText).toBe("Typed environment value TEST_EMAIL into the simulator.");
     expect(command.successText).not.toContain("user@example.com");
     expect(() => buildSimulatorBridgeCommand("type_env", { name: "TEST_PASSWORD" }, context)).toThrow(/not declared/);
+  });
+});
+
+describe("simulator setup", () => {
+  it("recognizes an already-booted simulator as a recoverable boot result", () => {
+    expect(
+      isSimulatorAlreadyBooted({
+        status: 1,
+        stdout: "",
+        stderr: "Unable to boot device in current state: Booted",
+        timedOut: false,
+      }),
+    ).toBe(true);
   });
 });
 

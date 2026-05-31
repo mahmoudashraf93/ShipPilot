@@ -96,6 +96,10 @@ function combinedOutput(result: ProcessResult): string {
   return [result.stdout, result.stderr].filter(Boolean).join("\n");
 }
 
+export function isSimulatorAlreadyBooted(result: ProcessResult): boolean {
+  return combinedOutput(result).includes("Unable to boot device in current state: Booted");
+}
+
 function blockedRecord(
   qaCase: ResolvedCase,
   startedAt: string,
@@ -365,11 +369,14 @@ export async function runCaseWithSdk(
     redactor,
     timeoutMs: 3 * 60 * 1000,
   });
-  if (boot.status !== 0) {
+  if (boot.status !== 0 && !isSimulatorAlreadyBooted(boot)) {
     const detail = redactor.redact(
       boot.timedOut ? "Timed out while booting the simulator." : combinedOutput(boot) || "Unknown simulator boot error",
     );
     return blockedRecord(qaCase, startedAt, "The simulator could not be booted before QA execution.", detail);
+  }
+  if (boot.status !== 0 && isSimulatorAlreadyBooted(boot) && verbose) {
+    console.log("[shippilot] simulator is already booted; continuing.");
   }
 
   const bootStatus = await runProcess("xcrun", ["simctl", "bootstatus", simulatorId, "-b"], {
