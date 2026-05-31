@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Codex } from "@openai/codex-sdk";
@@ -147,6 +147,29 @@ function parseBundleId(output: string): string | null {
   if (jsonValue) return jsonValue;
   const matches = output.match(/[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g);
   return matches?.at(-1) ?? null;
+}
+
+function sanitizeFilePart(value: string): string {
+  return value.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "case";
+}
+
+function collectEvidenceFiles(config: CodexPilotConfig, parsed: CodexCaseResult, cwd: string): CodexCaseResult {
+  if (!config.reports.screenshots) return parsed;
+
+  const screenshotsDir = path.resolve(cwd, config.reports.output_dir, "screenshots");
+  mkdirSync(screenshotsDir, { recursive: true });
+
+  const evidence = parsed.evidence.map((item, index) => {
+    if (!path.isAbsolute(item) || !existsSync(item)) return item;
+
+    const extension = path.extname(item) || ".png";
+    const fileName = `${sanitizeFilePart(parsed.case_id)}-${index + 1}${extension}`;
+    const destination = path.join(screenshotsDir, fileName);
+    copyFileSync(item, destination);
+    return path.relative(cwd, destination);
+  });
+
+  return { ...parsed, evidence };
 }
 
 function escapeRegExp(value: string): string {
@@ -428,6 +451,7 @@ export async function runCaseWithSdk(
     try {
       parsed = parseCodexResult(rawResponse);
       parsed = JSON.parse(redactor.redact(JSON.stringify(parsed))) as CodexCaseResult;
+      parsed = collectEvidenceFiles(config, parsed, cwd);
     } catch (error) {
       parsed = {
         status: "blocked",
