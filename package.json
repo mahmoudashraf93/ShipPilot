@@ -14,7 +14,7 @@
     "url": "https://github.com/mahmoudashraf93/ShipPilot/issues"
   },
   "bin": {
-    "shippilot": "./dist/cli.js"
+    "shippilot": "dist/cli.js"
   },
   "files": [
     "dist",
