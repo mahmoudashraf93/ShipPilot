@@ -78,6 +78,8 @@ Enter \${TEST_EMAIL}.
           type: "http",
           url: "http://127.0.0.1:1234/mcp",
           enabled_tools: [...simulatorBridgeToolNames],
+          default_tools_approval_mode: "approve",
+          trust_level: "trusted",
         },
       },
     });

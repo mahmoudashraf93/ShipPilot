@@ -213,6 +213,8 @@ export function buildCodexCliConfig(bridgeUrl: string): CodexConfigObject {
         type: "http",
         url: bridgeUrl,
         enabled_tools: [...simulatorBridgeToolNames],
+        default_tools_approval_mode: "approve",
+        trust_level: "trusted",
       },
     },
   };
