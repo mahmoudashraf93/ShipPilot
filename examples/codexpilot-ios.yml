@@ -1,0 +1,22 @@
+codex:
+  engine: sdk
+  auth: api_key
+  model: default
+  sandbox: workspace-write
+  fail_on: failed_or_blocked
+  allow_experimental_personal_hosted_auth: false
+
+ios:
+  project: MyApp.xcodeproj
+  scheme: MyApp
+  simulator: iPhone 17 Pro
+  backend: xcodebuildmcp
+  configuration: Debug
+
+reports:
+  output_dir: .codexpilot-ios
+  markdown: true
+  json: true
+  junit: true
+  screenshots: true
+  logs: true

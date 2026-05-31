@@ -1,0 +1,246 @@
+#!/usr/bin/env node
+import { mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { Command } from "commander";
+import fg from "fast-glob";
+import { loadConfig } from "./config/loadConfig.js";
+import { validateAuthConfig } from "./auth/validateAuth.js";
+import { parseCase } from "./cases/parseCase.js";
+import { resolveCaseEnv } from "./cases/resolveEnv.js";
+import { createRedactor } from "./security/redact.js";
+import { doctorXcode } from "./ios/doctorXcode.js";
+import { runCaseWithSdk } from "./codex/runWithSdk.js";
+import { writeJsonReport, readJsonReport, type RunReport } from "./reports/jsonReport.js";
+import { writeMarkdownReport } from "./reports/markdownReport.js";
+import { writeJunitReport } from "./reports/junitReport.js";
+import { ExitCodes } from "./exitCodes.js";
+
+type GlobalOptions = {
+  config?: string;
+};
+
+function writeReports(configPath: string | undefined, report: RunReport): void {
+  const config = loadConfig(configPath);
+  if (config.reports.markdown) writeMarkdownReport(config, report);
+  if (config.reports.junit) writeJunitReport(config, report);
+}
+
+function exitCodeFor(report: RunReport, failOn: "failed_or_blocked" | "never"): number {
+  if (failOn === "never") return ExitCodes.success;
+  if (report.status === "failed") return ExitCodes.failed;
+  if (report.status === "blocked") return ExitCodes.blocked;
+  return ExitCodes.success;
+}
+
+function printCheck(name: string, ok: boolean, detail?: string): void {
+  const marker = ok ? "PASS" : "FAIL";
+  console.log(`${marker} ${name}${detail ? `: ${detail.split("\n")[0]}` : ""}`);
+}
+
+async function main(): Promise<void> {
+  const program = new Command();
+
+  program
+    .name("codexpilot-ios")
+    .description("CodexPilot iOS: agentic iOS QA runner for Codex")
+    .version("0.1.0")
+    .option("-c, --config <path>", "config file path", "codexpilot-ios.yml");
+
+  program.command("init").description("Scaffold CodexPilot iOS config, sample case, and CI templates").action(() => {
+    mkdirSync("qa", { recursive: true });
+    mkdirSync(".github/workflows", { recursive: true });
+    mkdirSync("bitrise", { recursive: true });
+
+    writeFileSync(
+      "codexpilot-ios.yml",
+      `codex:
+  engine: sdk
+  auth: api_key
+  model: default
+  sandbox: workspace-write
+  fail_on: failed_or_blocked
+  allow_experimental_personal_hosted_auth: false
+
+ios:
+  project: MyApp.xcodeproj
+  scheme: MyApp
+  simulator: iPhone 17 Pro
+  backend: xcodebuildmcp
+  configuration: Debug
+
+reports:
+  output_dir: .codexpilot-ios
+  markdown: true
+  json: true
+  junit: true
+  screenshots: true
+  logs: true
+`,
+    );
+
+    writeFileSync(
+      "qa/login.md",
+      `---
+id: login-happy-path
+title: Login happy path
+required_env:
+  - TEST_EMAIL
+  - TEST_PASSWORD
+tags:
+  - release
+  - smoke
+---
+
+Launch the app.
+Enter \${TEST_EMAIL} and \${TEST_PASSWORD}.
+Tap Log In.
+Expect the Home screen to be visible.
+`,
+    );
+
+    writeFileSync(
+      ".github/workflows/codexpilot-ios.yml",
+      `name: CodexPilot iOS QA
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  codexpilot-ios:
+    runs-on: macos-15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install XcodeBuildMCP
+        run: npm install -g xcodebuildmcp
+
+      - name: Run CodexPilot iOS
+        env:
+          OPENAI_API_KEY: \${{ secrets.OPENAI_API_KEY }}
+          CODEX_ACCESS_TOKEN: \${{ secrets.CODEX_ACCESS_TOKEN }}
+          CODEX_HOME_TGZ_BASE64: \${{ secrets.CODEX_HOME_TGZ_BASE64 }}
+          TEST_EMAIL: \${{ secrets.TEST_EMAIL }}
+          TEST_PASSWORD: \${{ secrets.TEST_PASSWORD }}
+        run: |
+          npx codexpilot-ios doctor
+          npx codexpilot-ios run --case qa/login.md
+
+      - name: Upload CodexPilot iOS report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codexpilot-ios-report
+          path: .codexpilot-ios/
+`,
+    );
+
+    writeFileSync(
+      "bitrise/codexpilot-ios.sh",
+      `#!/usr/bin/env bash
+set -euo pipefail
+
+npm install -g codexpilot-ios
+codexpilot-ios doctor
+codexpilot-ios run --case qa/login.md
+`,
+      { mode: 0o755 },
+    );
+
+    console.log("Created codexpilot-ios.yml, qa/login.md, and CI templates.");
+  });
+
+  program.command("doctor").description("Validate config, auth, Xcode, XcodeBuildMCP, and project inputs").action(() => {
+    const options = program.opts<GlobalOptions>();
+    try {
+      const config = loadConfig(options.config);
+      const authIssues = validateAuthConfig(config);
+      for (const issue of authIssues) printCheck("auth", false, issue);
+
+      const checks = doctorXcode(config);
+      for (const check of checks) printCheck(check.name, check.ok, check.detail);
+
+      if (authIssues.length > 0 || checks.some((check) => !check.ok)) {
+        process.exitCode = ExitCodes.setupError;
+        return;
+      }
+
+      printCheck("CodexPilot iOS doctor", true, "ready");
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      process.exitCode = ExitCodes.setupError;
+    }
+  });
+
+  program
+    .command("run")
+    .description("Run one or more CodexPilot iOS QA cases")
+    .option("--case <path>", "single QA case Markdown file")
+    .option("--cases <glob>", "QA case glob or directory")
+    .action(async (runOptions: { case?: string; cases?: string }) => {
+      const options = program.opts<GlobalOptions>();
+      const startedAt = new Date().toISOString();
+
+      try {
+        const config = loadConfig(options.config);
+        const authIssues = validateAuthConfig(config);
+        if (authIssues.length > 0) throw new Error(authIssues.join("\n"));
+
+        const casePaths = runOptions.case
+          ? [runOptions.case]
+          : await fg(runOptions.cases ? `${runOptions.cases.replace(/\/$/, "")}/**/*.md` : "qa/**/*.md");
+
+        if (casePaths.length === 0) throw new Error("No QA cases found.");
+
+        const records = [];
+        for (const casePath of casePaths) {
+          const qaCase = parseCase(casePath);
+          const resolved = resolveCaseEnv(qaCase);
+          const redactor = createRedactor(Object.values(resolved.envValues));
+          console.log(`Running ${qaCase.id}: ${qaCase.title}`);
+          records.push(await runCaseWithSdk(config, resolved, redactor));
+        }
+
+        const report = writeJsonReport(config, records, startedAt);
+        if (config.reports.markdown) writeMarkdownReport(config, report);
+        if (config.reports.junit) writeJunitReport(config, report);
+        console.log(`CodexPilot iOS completed with status: ${report.status}`);
+        process.exitCode = exitCodeFor(report, config.codex.fail_on);
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+        process.exitCode = ExitCodes.setupError;
+      }
+    });
+
+  program
+    .command("report")
+    .description("Regenerate reports from a saved run.json")
+    .requiredOption("--run <path>", "path to run.json")
+    .action((reportOptions: { run: string }) => {
+      const options = program.opts<GlobalOptions>();
+      try {
+        const report = readJsonReport(reportOptions.run);
+        writeReports(options.config, report);
+        console.log("Regenerated CodexPilot iOS reports.");
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+        process.exitCode = ExitCodes.setupError;
+      }
+    });
+
+  await program.parseAsync(process.argv);
+}
+
+main().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = ExitCodes.setupError;
+});

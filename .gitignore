@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.codexpilot-ios/
+.codex/
+coverage/
+*.tgz
+*.xcresult
+DerivedData/
+.DS_Store
+.env
+npm-debug.log*

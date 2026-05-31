@@ -1,0 +1,49 @@
+{
+  "name": "codexpilot-ios",
+  "version": "0.1.0",
+  "description": "Agentic iOS QA runner for Codex, GitHub Actions, and Bitrise",
+  "type": "module",
+  "license": "MIT",
+  "author": "Mahmoud Ashraf",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mahmoudashraf93/CodexPilot-iOS.git"
+  },
+  "homepage": "https://github.com/mahmoudashraf93/CodexPilot-iOS#readme",
+  "bugs": {
+    "url": "https://github.com/mahmoudashraf93/CodexPilot-iOS/issues"
+  },
+  "bin": {
+    "codexpilot-ios": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "examples",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@openai/codex-sdk": "^0.135.0",
+    "commander": "^14.0.2",
+    "fast-glob": "^3.3.3",
+    "gray-matter": "^4.0.3",
+    "yaml": "^2.8.1",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.14"
+  }
+}
