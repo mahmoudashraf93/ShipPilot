@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/shippilot-icon.png" alt="ShipPilot icon" width="180">
+  <img src="https://raw.githubusercontent.com/mahmoudashraf93/ShipPilot/main/assets/shippilot-icon.png" alt="ShipPilot icon" width="180">
 </p>
 
 # ShipPilot
@@ -54,7 +54,6 @@ reports:
   json: true
   junit: true
   screenshots: true
-  logs: true
 ```
 
 Use either `ios.project` or `ios.workspace`, not both. Add `ios.bundle_id` when available; it avoids a separate bundle-id discovery step during CI.
@@ -82,7 +81,7 @@ Tap Log In.
 Expect the Home screen to be visible.
 ```
 
-Environment placeholders are resolved at runtime and redacted from prompts, logs, reports, and artifacts. Declare every secret placeholder in `required_env`; missing required variables fail setup before the agent runs.
+Environment placeholders are resolved at runtime and redacted from prompts, verbose output, reports, and artifacts. Declare every secret placeholder in `required_env`; missing required variables fail setup before the agent runs.
 
 ### Running Cases
 
@@ -191,7 +190,6 @@ Reports are written to `.shippilot/`:
   run.json
   report.md
   junit.xml
-  logs/
   screenshots/
 ```
 
