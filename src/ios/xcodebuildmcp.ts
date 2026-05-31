@@ -54,6 +54,10 @@ export function buildArgs(config: CodexPilotConfig, simulatorId?: string): strin
   );
 }
 
+export function bootArgs(config: CodexPilotConfig, simulatorId?: string): string[] {
+  return addSimulator(["simulator", "boot"], config, simulatorId);
+}
+
 export function getAppPathArgs(config: CodexPilotConfig, simulatorId?: string): string[] {
   return addProjectOrWorkspace(
     addSimulator(

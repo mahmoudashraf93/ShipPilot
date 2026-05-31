@@ -8,6 +8,7 @@ import type { ResolvedCase } from "../cases/resolveEnv.js";
 import type { Redactor } from "../security/redact.js";
 import { prepareCodexAuth } from "../auth/prepareCodexHome.js";
 import {
+  bootArgs,
   buildArgs,
   getAppPathArgs,
   getBundleIdArgs,
@@ -281,6 +282,20 @@ export async function runCaseWithSdk(
         : combinedOutput(simulatorList) || `Could not find simulator named ${config.ios.simulator}.`,
     );
     return blockedRecord(qaCase, startedAt, "The simulator id could not be resolved.", detail);
+  }
+
+  const boot = await runProcess("xcodebuildmcp", bootArgs(config, simulatorId), {
+    cwd,
+    env: process.env,
+    verbose,
+    redactor,
+    timeoutMs: 3 * 60 * 1000,
+  });
+  if (boot.status !== 0) {
+    const detail = redactor.redact(
+      boot.timedOut ? "Timed out while booting the simulator." : combinedOutput(boot) || "Unknown simulator boot error",
+    );
+    return blockedRecord(qaCase, startedAt, "The simulator could not be booted before QA execution.", detail);
   }
 
   const build = await runProcess("xcodebuildmcp", buildArgs(config, simulatorId), {
