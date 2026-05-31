@@ -9,6 +9,7 @@ ShipPilot is designed for open-source CI, so secret handling is strict by defaul
 - Do not cache Codex auth by default.
 - Keep auth material in temporary directories.
 - Upload reports with `if: always()`, but never upload auth folders.
+- Secret-backed GitHub fork PR runs are blocked by default unless `SHIPPILOT_ALLOW_UNTRUSTED_SECRETS=true` is set.
 
 ## Redaction
 

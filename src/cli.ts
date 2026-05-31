@@ -8,6 +8,7 @@ import { validateAuthConfig } from "./auth/validateAuth.js";
 import { parseCase } from "./cases/parseCase.js";
 import { resolveCaseEnv } from "./cases/resolveEnv.js";
 import { createRedactor } from "./security/redact.js";
+import { assertTrustedRunnerForSecrets } from "./security/trustedRunner.js";
 import { doctorXcode } from "./ios/doctorXcode.js";
 import { runCaseWithSdk } from "./codex/runWithSdk.js";
 import { writeJsonReport, readJsonReport, type RunReport } from "./reports/jsonReport.js";
@@ -125,8 +126,6 @@ jobs:
       - name: Run ShipPilot
         env:
           OPENAI_API_KEY: \${{ secrets.OPENAI_API_KEY }}
-          CODEX_ACCESS_TOKEN: \${{ secrets.CODEX_ACCESS_TOKEN }}
-          CODEX_HOME_TGZ_BASE64: \${{ secrets.CODEX_HOME_TGZ_BASE64 }}
           TEST_EMAIL: \${{ secrets.TEST_EMAIL }}
           TEST_PASSWORD: \${{ secrets.TEST_PASSWORD }}
         run: |
@@ -204,6 +203,10 @@ shippilot run --case qa/login.md
         for (const casePath of casePaths) {
           const qaCase = parseCase(casePath);
           const resolved = resolveCaseEnv(qaCase);
+          assertTrustedRunnerForSecrets({
+            config,
+            hasCaseSecrets: Object.values(resolved.envValues).some((value) => value.length > 0),
+          });
           const redactor = createRedactor(Object.values(resolved.envValues));
           console.log(`Running ${qaCase.id}: ${qaCase.title}`);
           records.push(
