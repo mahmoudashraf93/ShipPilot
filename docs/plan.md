@@ -37,6 +37,8 @@ npx codexpilot-ios report --run .codexpilot-ios/run.json
 
 `codex.fail_on: never` enables report-only mode.
 
+`codex.verbose: true` or `codexpilot-ios run --verbose` streams build output and Codex SDK events for CI debugging. It shows reasoning summaries and tool activity, not private chain-of-thought.
+
 ## Milestones
 
 1. Create public repo and initial docs.

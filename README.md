@@ -35,6 +35,7 @@ codex:
   model: default
   sandbox: workspace-write
   fail_on: failed_or_blocked
+  verbose: false
   allow_experimental_personal_hosted_auth: false
 
 ios:
@@ -87,6 +88,8 @@ CodexPilot iOS exits like a test runner:
 - `3`: at least one case was blocked or inconclusive
 
 Set `codex.fail_on: never` for report-only mode.
+
+Use `codex.verbose: true` or `codexpilot-ios run --verbose` to stream XcodeBuildMCP output and Codex SDK events in CI logs. Verbose mode shows progress, tool calls, command executions, reasoning summaries, errors, and token usage, but not private model chain-of-thought.
 
 ## GitHub Actions
 

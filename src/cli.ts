@@ -60,6 +60,7 @@ async function main(): Promise<void> {
   sandbox: workspace-write
   fail_on: failed_or_blocked
   allow_experimental_personal_hosted_auth: false
+  verbose: false
 
 ios:
   project: MyApp.xcodeproj
@@ -186,7 +187,8 @@ codexpilot-ios run --case qa/login.md
     .description("Run one or more CodexPilot iOS QA cases")
     .option("--case <path>", "single QA case Markdown file")
     .option("--cases <glob>", "QA case glob or directory")
-    .action(async (runOptions: { case?: string; cases?: string }) => {
+    .option("--verbose", "stream XcodeBuildMCP and Codex SDK events")
+    .action(async (runOptions: { case?: string; cases?: string; verbose?: boolean }) => {
       const options = program.opts<GlobalOptions>();
       const startedAt = new Date().toISOString();
 
@@ -207,7 +209,7 @@ codexpilot-ios run --case qa/login.md
           const resolved = resolveCaseEnv(qaCase);
           const redactor = createRedactor(Object.values(resolved.envValues));
           console.log(`Running ${qaCase.id}: ${qaCase.title}`);
-          records.push(await runCaseWithSdk(config, resolved, redactor));
+          records.push(await runCaseWithSdk(config, resolved, redactor, process.cwd(), Boolean(runOptions.verbose)));
         }
 
         const report = writeJsonReport(config, records, startedAt);

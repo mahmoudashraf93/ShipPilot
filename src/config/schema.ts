@@ -12,6 +12,7 @@ export const configSchema = z
         model: z.string().default("default"),
         sandbox: z.enum(["read-only", "workspace-write", "danger-full-access"]).default("workspace-write"),
         fail_on: z.enum(failModes).default("failed_or_blocked"),
+        verbose: z.boolean().default(false),
         allow_experimental_personal_hosted_auth: z.boolean().default(false),
       })
       .default({
@@ -20,6 +21,7 @@ export const configSchema = z
         model: "default",
         sandbox: "workspace-write",
         fail_on: "failed_or_blocked",
+        verbose: false,
         allow_experimental_personal_hosted_auth: false,
       }),
     ios: z.object({
