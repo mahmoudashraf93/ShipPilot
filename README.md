@@ -35,7 +35,7 @@ codex:
   engine: sdk
   auth: api_key # api_key | access_token | chatgpt_hosted_experimental
   model: default
-  sandbox: danger-full-access
+  sandbox: workspace-write
   fail_on: failed_or_blocked
   verbose: false
   allow_experimental_personal_hosted_auth: false
@@ -115,10 +115,12 @@ For iOS simulator UI automation, use:
 
 ```yaml
 codex:
-  sandbox: danger-full-access
+  sandbox: workspace-write
 ```
 
-XcodeBuildMCP needs access to CoreSimulator services outside the repository workspace. More restrictive sandbox modes can build the app but fail once the agent tries to inspect UI, tap controls, or capture screenshots.
+ShipPilot keeps Codex in a workspace sandbox and exposes simulator UI automation through a ShipPilot-controlled MCP bridge. The bridge only provides allowlisted QA tools such as snapshot, screenshot, tap, type, swipe, and app relaunch. Codex default shell tools are disabled during the QA turn.
+
+`danger-full-access` remains available as an explicit escape hatch, but ShipPilot prints a warning when it is configured.
 
 Run ShipPilot only in trusted workflows when secrets are present. For open-source repositories, prefer `workflow_dispatch`, releases, schedules, or maintainer-approved workflows. Use `actions/checkout` with `persist-credentials: false`.
 
