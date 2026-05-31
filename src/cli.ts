@@ -41,18 +41,18 @@ async function main(): Promise<void> {
   const program = new Command();
 
   program
-    .name("codexpilot-ios")
-    .description("CodexPilot iOS: agentic iOS QA runner for Codex")
+    .name("shippilot")
+    .description("ShipPilot: agentic iOS QA runner for Codex")
     .version("0.1.0")
-    .option("-c, --config <path>", "config file path", "codexpilot-ios.yml");
+    .option("-c, --config <path>", "config file path", "shippilot.yml");
 
-  program.command("init").description("Scaffold CodexPilot iOS config, sample case, and CI templates").action(() => {
+  program.command("init").description("Scaffold ShipPilot config, sample case, and CI templates").action(() => {
     mkdirSync("qa", { recursive: true });
     mkdirSync(".github/workflows", { recursive: true });
     mkdirSync("bitrise", { recursive: true });
 
     writeFileSync(
-      "codexpilot-ios.yml",
+      "shippilot.yml",
       `codex:
   engine: sdk
   auth: api_key
@@ -71,7 +71,7 @@ ios:
   configuration: Debug
 
 reports:
-  output_dir: .codexpilot-ios
+  output_dir: .shippilot
   markdown: true
   json: true
   junit: true
@@ -101,8 +101,8 @@ Expect the Home screen to be visible.
     );
 
     writeFileSync(
-      ".github/workflows/codexpilot-ios.yml",
-      `name: CodexPilot iOS QA
+      ".github/workflows/shippilot.yml",
+      `name: ShipPilot QA
 
 on:
   workflow_dispatch:
@@ -110,7 +110,7 @@ on:
     types: [published]
 
 jobs:
-  codexpilot-ios:
+  shippilot:
     runs-on: macos-15
     permissions:
       contents: read
@@ -126,7 +126,7 @@ jobs:
       - name: Install XcodeBuildMCP
         run: npm install -g xcodebuildmcp
 
-      - name: Run CodexPilot iOS
+      - name: Run ShipPilot
         env:
           OPENAI_API_KEY: \${{ secrets.OPENAI_API_KEY }}
           CODEX_ACCESS_TOKEN: \${{ secrets.CODEX_ACCESS_TOKEN }}
@@ -134,31 +134,31 @@ jobs:
           TEST_EMAIL: \${{ secrets.TEST_EMAIL }}
           TEST_PASSWORD: \${{ secrets.TEST_PASSWORD }}
         run: |
-          npx codexpilot-ios doctor
-          npx codexpilot-ios run --case qa/login.md
+          npx shippilot doctor
+          npx shippilot run --case qa/login.md
 
-      - name: Upload CodexPilot iOS report
+      - name: Upload ShipPilot report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: codexpilot-ios-report
-          path: .codexpilot-ios/
+          name: shippilot-report
+          path: .shippilot/
 `,
     );
 
     writeFileSync(
-      "bitrise/codexpilot-ios.sh",
+      "bitrise/shippilot.sh",
       `#!/usr/bin/env bash
 set -euo pipefail
 
-npm install -g codexpilot-ios
-codexpilot-ios doctor
-codexpilot-ios run --case qa/login.md
+npm install -g shippilot
+shippilot doctor
+shippilot run --case qa/login.md
 `,
       { mode: 0o755 },
     );
 
-    console.log("Created codexpilot-ios.yml, qa/login.md, and CI templates.");
+    console.log("Created shippilot.yml, qa/login.md, and CI templates.");
   });
 
   program.command("doctor").description("Validate config, auth, Xcode, XcodeBuildMCP, and project inputs").action(() => {
@@ -176,7 +176,7 @@ codexpilot-ios run --case qa/login.md
         return;
       }
 
-      printCheck("CodexPilot iOS doctor", true, "ready");
+      printCheck("ShipPilot doctor", true, "ready");
     } catch (error) {
       console.error(error instanceof Error ? error.message : String(error));
       process.exitCode = ExitCodes.setupError;
@@ -185,7 +185,7 @@ codexpilot-ios run --case qa/login.md
 
   program
     .command("run")
-    .description("Run one or more CodexPilot iOS QA cases")
+    .description("Run one or more ShipPilot QA cases")
     .option("--case <path>", "single QA case Markdown file")
     .option("--cases <glob>", "QA case glob or directory")
     .option("--verbose", "stream XcodeBuildMCP and Codex SDK events")
@@ -218,7 +218,7 @@ codexpilot-ios run --case qa/login.md
         const report = writeJsonReport(config, records, startedAt);
         if (config.reports.markdown) writeMarkdownReport(config, report);
         if (config.reports.junit) writeJunitReport(config, report);
-        console.log(`CodexPilot iOS completed with status: ${report.status}`);
+        console.log(`ShipPilot completed with status: ${report.status}`);
         process.exitCode = exitCodeFor(report, config.codex.fail_on);
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error));
@@ -235,7 +235,7 @@ codexpilot-ios run --case qa/login.md
       try {
         const report = readJsonReport(reportOptions.run);
         writeReports(options.config, report);
-        console.log("Regenerated CodexPilot iOS reports.");
+        console.log("Regenerated ShipPilot reports.");
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error));
         process.exitCode = ExitCodes.setupError;

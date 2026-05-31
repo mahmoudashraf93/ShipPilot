@@ -1,12 +1,12 @@
-# CodexPilot iOS Full Project Plan
+# ShipPilot Full Project Plan
 
-CodexPilot iOS is an SDK-first agentic iOS QA runner. Teams write Markdown QA cases, configure an iOS project and simulator, choose a Codex auth mode, and run the tool from GitHub Actions, Bitrise, or local CI. Codex drives the app through an iOS simulator, verifies expected outcomes, captures screenshots/logs, writes reports, and fails CI when a case fails.
+ShipPilot is an SDK-first agentic iOS QA runner. Teams write Markdown QA cases, configure an iOS project and simulator, choose a Codex auth mode, and run the tool from GitHub Actions, Bitrise, or local CI. Codex drives the app through an iOS simulator, verifies expected outcomes, captures screenshots/logs, writes reports, and fails CI when a case fails.
 
 ## Core Design
 
-- TypeScript/Node CLI published as `codexpilot-ios`.
-- Product name: CodexPilot iOS.
-- GitHub repo: `mahmoudashraf93/CodexPilot-iOS`.
+- TypeScript/Node CLI published as `shippilot`.
+- Product name: ShipPilot.
+- GitHub repo: `mahmoudashraf93/ShipPilot`.
 - Primary engine: `@openai/codex-sdk`.
 - iOS automation backend: XcodeBuildMCP CLI.
 - v1 is test-and-report only: no edits, commits, patches, pushes, or PR creation.
@@ -15,11 +15,11 @@ CodexPilot iOS is an SDK-first agentic iOS QA runner. Teams write Markdown QA ca
 ## CLI
 
 ```bash
-npx codexpilot-ios init
-npx codexpilot-ios doctor
-npx codexpilot-ios run --case qa/login.md
-npx codexpilot-ios run --cases qa/
-npx codexpilot-ios report --run .codexpilot-ios/run.json
+npx shippilot init
+npx shippilot doctor
+npx shippilot run --case qa/login.md
+npx shippilot run --cases qa/
+npx shippilot report --run .shippilot/run.json
 ```
 
 ## Auth Modes
@@ -37,7 +37,7 @@ npx codexpilot-ios report --run .codexpilot-ios/run.json
 
 `codex.fail_on: never` enables report-only mode.
 
-`codex.verbose: true` or `codexpilot-ios run --verbose` streams build output and Codex SDK events for CI debugging. It shows reasoning summaries and tool activity, not private chain-of-thought.
+`codex.verbose: true` or `shippilot run --verbose` streams build output and Codex SDK events for CI debugging. It shows reasoning summaries and tool activity, not private chain-of-thought.
 
 For simulator UI automation, `codex.sandbox: danger-full-access` is required because XcodeBuildMCP must communicate with CoreSimulator services outside the repository workspace.
 
@@ -52,4 +52,4 @@ For simulator UI automation, `codex.sandbox: danger-full-access` is required bec
 7. Implement reports and exit codes.
 8. Add GitHub Actions and Bitrise examples.
 9. Add sample iOS app and smoke cases.
-10. Publish initial npm package as `codexpilot-ios`.
+10. Publish initial npm package as `shippilot`.

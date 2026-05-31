@@ -1,4 +1,4 @@
-import type { CodexPilotConfig } from "../config/schema.js";
+import type { ShipPilotConfig } from "../config/schema.js";
 import type { ResolvedCase } from "../cases/resolveEnv.js";
 
 export type PromptRuntimeContext = {
@@ -7,7 +7,7 @@ export type PromptRuntimeContext = {
 };
 
 export function buildCodexPrompt(
-  config: CodexPilotConfig,
+  config: ShipPilotConfig,
   qaCase: ResolvedCase,
   runtime: PromptRuntimeContext,
 ): string {
@@ -16,7 +16,7 @@ export function buildCodexPrompt(
     : `workspace ${config.ios.workspace}`;
 
   return [
-    "You are CodexPilot iOS, an agentic QA runner for iOS simulator testing.",
+    "You are ShipPilot, an agentic QA runner for iOS simulator testing.",
     "",
     "Goal:",
     `Execute QA case ${qaCase.id}: ${qaCase.title}.`,

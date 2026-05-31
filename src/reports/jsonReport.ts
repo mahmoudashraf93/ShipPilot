@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import type { CodexPilotConfig } from "../config/schema.js";
+import type { ShipPilotConfig } from "../config/schema.js";
 import type { CaseRunRecord } from "../codex/runWithSdk.js";
 
 export type RunReport = {
@@ -21,7 +21,7 @@ export function summarizeStatus(cases: CaseRunRecord[]): RunReport["status"] {
 }
 
 export function writeJsonReport(
-  config: CodexPilotConfig,
+  config: ShipPilotConfig,
   cases: CaseRunRecord[],
   startedAt: string,
   cwd = process.cwd(),

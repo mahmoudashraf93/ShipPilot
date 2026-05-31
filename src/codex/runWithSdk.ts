@@ -3,7 +3,7 @@ import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Codex } from "@openai/codex-sdk";
-import type { CodexPilotConfig } from "../config/schema.js";
+import type { ShipPilotConfig } from "../config/schema.js";
 import type { ResolvedCase } from "../cases/resolveEnv.js";
 import type { Redactor } from "../security/redact.js";
 import { prepareCodexAuth } from "../auth/prepareCodexHome.js";
@@ -45,7 +45,7 @@ function runProcess(
 ): Promise<ProcessResult> {
   return new Promise((resolve, reject) => {
     if (options.verbose) {
-      console.log(`[codexpilot] $ ${[command, ...args].join(" ")}`);
+      console.log(`[shippilot] $ ${[command, ...args].join(" ")}`);
     }
 
     const child = spawn(command, args, {
@@ -153,7 +153,7 @@ function sanitizeFilePart(value: string): string {
   return value.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "case";
 }
 
-function collectEvidenceFiles(config: CodexPilotConfig, parsed: CodexCaseResult, cwd: string): CodexCaseResult {
+function collectEvidenceFiles(config: ShipPilotConfig, parsed: CodexCaseResult, cwd: string): CodexCaseResult {
   if (!config.reports.screenshots) return parsed;
 
   const screenshotsDir = path.resolve(cwd, config.reports.output_dir, "screenshots");
@@ -221,29 +221,29 @@ function logCodexEvent(event: unknown, redactor: Redactor): void {
 
   if (typed.type === "item.started" && typed.item) {
     if (typed.item.type === "command_execution") {
-      console.log(`[codexpilot:agent] command started: ${typed.item.command ?? ""}`);
+      console.log(`[shippilot:agent] command started: ${typed.item.command ?? ""}`);
       return;
     }
     if (typed.item.type === "mcp_tool_call") {
-      console.log(`[codexpilot:agent] tool started: ${typed.item.server ?? "mcp"}.${typed.item.tool ?? ""}`);
+      console.log(`[shippilot:agent] tool started: ${typed.item.server ?? "mcp"}.${typed.item.tool ?? ""}`);
       return;
     }
-    console.log(`[codexpilot:agent] ${typed.item.type ?? "item"} started`);
+    console.log(`[shippilot:agent] ${typed.item.type ?? "item"} started`);
     return;
   }
 
   if (typed.type === "item.completed" && typed.item) {
     if (typed.item.type === "reasoning" && typed.item.text) {
-      console.log(`[codexpilot:agent] reasoning summary: ${redactor.redact(typed.item.text)}`);
+      console.log(`[shippilot:agent] reasoning summary: ${redactor.redact(typed.item.text)}`);
       return;
     }
     if (typed.item.type === "agent_message" && typed.item.text) {
-      console.log(`[codexpilot:agent] message: ${redactor.redact(typed.item.text)}`);
+      console.log(`[shippilot:agent] message: ${redactor.redact(typed.item.text)}`);
       return;
     }
     if (typed.item.type === "command_execution") {
       console.log(
-        `[codexpilot:agent] command ${typed.item.status ?? "completed"} exit=${typed.item.exit_code ?? "n/a"}: ${
+        `[shippilot:agent] command ${typed.item.status ?? "completed"} exit=${typed.item.exit_code ?? "n/a"}: ${
           typed.item.command ?? ""
         }`,
       );
@@ -255,20 +255,20 @@ function logCodexEvent(event: unknown, redactor: Redactor): void {
     if (typed.item.type === "mcp_tool_call") {
       const suffix = typed.item.error?.message ? ` error=${typed.item.error.message}` : "";
       console.log(
-        `[codexpilot:agent] tool ${typed.item.status ?? "completed"}: ${
+        `[shippilot:agent] tool ${typed.item.status ?? "completed"}: ${
           typed.item.server ?? "mcp"
         }.${typed.item.tool ?? ""}${suffix}`,
       );
       return;
     }
-    console.log(`[codexpilot:agent] ${typed.item.type ?? "item"} completed`);
+    console.log(`[shippilot:agent] ${typed.item.type ?? "item"} completed`);
     return;
   }
 
   if (typed.type === "turn.completed") {
     const usage = typed.usage;
     console.log(
-      `[codexpilot:agent] turn completed input=${usage?.input_tokens ?? "n/a"} output=${
+      `[shippilot:agent] turn completed input=${usage?.input_tokens ?? "n/a"} output=${
         usage?.output_tokens ?? "n/a"
       } reasoning=${usage?.reasoning_output_tokens ?? "n/a"}`,
     );
@@ -276,12 +276,12 @@ function logCodexEvent(event: unknown, redactor: Redactor): void {
   }
 
   if (typed.type === "turn.failed" || typed.type === "error") {
-    console.log(`[codexpilot:agent] error: ${typed.error?.message ?? typed.message ?? "unknown"}`);
+    console.log(`[shippilot:agent] error: ${typed.error?.message ?? typed.message ?? "unknown"}`);
   }
 }
 
 export async function runCaseWithSdk(
-  config: CodexPilotConfig,
+  config: ShipPilotConfig,
   qaCase: ResolvedCase,
   redactor: Redactor,
   cwd = process.cwd(),
@@ -423,7 +423,7 @@ export async function runCaseWithSdk(
     let rawResponse: string;
 
     if (verbose) {
-      console.log("[codexpilot] Starting Codex SDK streamed run");
+      console.log("[shippilot] Starting Codex SDK streamed run");
       const { events } = await thread.runStreamed(prompt, {
         outputSchema: codexOutputJsonSchema,
       });

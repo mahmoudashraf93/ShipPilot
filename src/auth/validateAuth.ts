@@ -1,6 +1,6 @@
-import type { CodexPilotConfig } from "../config/schema.js";
+import type { ShipPilotConfig } from "../config/schema.js";
 
-export function validateAuthConfig(config: CodexPilotConfig, env = process.env): string[] {
+export function validateAuthConfig(config: ShipPilotConfig, env = process.env): string[] {
   const issues: string[] = [];
 
   if (config.codex.auth === "api_key" && !env.OPENAI_API_KEY) {

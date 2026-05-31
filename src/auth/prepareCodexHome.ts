@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import type { CodexPilotConfig } from "../config/schema.js";
+import type { ShipPilotConfig } from "../config/schema.js";
 
 export type PreparedAuth = {
   apiKey?: string;
@@ -17,10 +17,10 @@ function stringEnv(env = process.env): Record<string, string> {
 }
 
 function makeTempCodexHome(): string {
-  return mkdtempSync(path.join(os.tmpdir(), "codexpilot-ios-codex-home-"));
+  return mkdtempSync(path.join(os.tmpdir(), "shippilot-codex-home-"));
 }
 
-export function prepareCodexAuth(config: CodexPilotConfig, env = process.env): PreparedAuth {
+export function prepareCodexAuth(config: ShipPilotConfig, env = process.env): PreparedAuth {
   const baseEnv = stringEnv(env);
 
   if (config.codex.auth === "api_key") {
@@ -51,7 +51,7 @@ export function prepareCodexAuth(config: CodexPilotConfig, env = process.env): P
   }
 
   const codexHome = makeTempCodexHome();
-  const archivePath = path.join(os.tmpdir(), `codexpilot-ios-codex-home-${Date.now()}.tgz`);
+  const archivePath = path.join(os.tmpdir(), `shippilot-codex-home-${Date.now()}.tgz`);
   writeFileSync(archivePath, Buffer.from(String(env.CODEX_HOME_TGZ_BASE64), "base64"));
 
   const result = spawnSync("tar", ["-xzf", archivePath, "-C", codexHome, "--strip-components=1"], {

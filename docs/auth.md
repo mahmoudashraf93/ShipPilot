@@ -1,6 +1,6 @@
 # Auth
 
-CodexPilot iOS supports three auth modes.
+ShipPilot supports three auth modes.
 
 ## `api_key`
 
@@ -24,7 +24,7 @@ codex:
   auth: access_token
 ```
 
-CodexPilot iOS bootstraps Codex with:
+ShipPilot bootstraps Codex with:
 
 ```bash
 printenv CODEX_ACCESS_TOKEN | codex login --with-access-token

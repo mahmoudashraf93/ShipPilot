@@ -1,6 +1,6 @@
 # Security
 
-CodexPilot iOS is designed for open-source CI, so secret handling is strict by default.
+ShipPilot is designed for open-source CI, so secret handling is strict by default.
 
 ## Defaults
 

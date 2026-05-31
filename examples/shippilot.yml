@@ -16,7 +16,7 @@ ios:
   configuration: Debug
 
 reports:
-  output_dir: .codexpilot-ios
+  output_dir: .shippilot
   markdown: true
   json: true
   junit: true

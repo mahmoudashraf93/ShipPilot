@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
-import type { CodexPilotConfig } from "../config/schema.js";
+import type { ShipPilotConfig } from "../config/schema.js";
 
 export type CheckResult = {
   name: string;
@@ -17,7 +17,7 @@ export function runCommand(command: string, args: string[], cwd = process.cwd())
   };
 }
 
-function addProjectOrWorkspace(args: string[], config: CodexPilotConfig): string[] {
+function addProjectOrWorkspace(args: string[], config: ShipPilotConfig): string[] {
   if (config.ios.project) {
     args.push("--project-path", config.ios.project);
   } else if (config.ios.workspace) {
@@ -27,7 +27,7 @@ function addProjectOrWorkspace(args: string[], config: CodexPilotConfig): string
   return args;
 }
 
-function addSimulator(args: string[], config: CodexPilotConfig, simulatorId?: string): string[] {
+function addSimulator(args: string[], config: ShipPilotConfig, simulatorId?: string): string[] {
   if (simulatorId) {
     args.push("--simulator-id", simulatorId);
   } else {
@@ -36,7 +36,7 @@ function addSimulator(args: string[], config: CodexPilotConfig, simulatorId?: st
   return args;
 }
 
-export function buildArgs(config: CodexPilotConfig, simulatorId?: string): string[] {
+export function buildArgs(config: ShipPilotConfig, simulatorId?: string): string[] {
   return addProjectOrWorkspace(
     addSimulator(
       [
@@ -54,11 +54,11 @@ export function buildArgs(config: CodexPilotConfig, simulatorId?: string): strin
   );
 }
 
-export function bootArgs(config: CodexPilotConfig, simulatorId?: string): string[] {
+export function bootArgs(config: ShipPilotConfig, simulatorId?: string): string[] {
   return addSimulator(["simulator", "boot"], config, simulatorId);
 }
 
-export function getAppPathArgs(config: CodexPilotConfig, simulatorId?: string): string[] {
+export function getAppPathArgs(config: ShipPilotConfig, simulatorId?: string): string[] {
   return addProjectOrWorkspace(
     addSimulator(
       [
@@ -82,15 +82,15 @@ export function getBundleIdArgs(appPath: string): string[] {
   return ["simulator", "get-app-bundle-id", "--app-path", appPath];
 }
 
-export function installArgs(config: CodexPilotConfig, appPath: string, simulatorId?: string): string[] {
+export function installArgs(config: ShipPilotConfig, appPath: string, simulatorId?: string): string[] {
   return addSimulator(["simulator", "install", "--app-path", appPath], config, simulatorId);
 }
 
-export function launchArgs(config: CodexPilotConfig, bundleId: string, simulatorId?: string): string[] {
+export function launchArgs(config: ShipPilotConfig, bundleId: string, simulatorId?: string): string[] {
   return addSimulator(["simulator", "launch-app", "--bundle-id", bundleId], config, simulatorId);
 }
 
-export function projectFileExists(config: CodexPilotConfig, cwd = process.cwd()): boolean {
+export function projectFileExists(config: ShipPilotConfig, cwd = process.cwd()): boolean {
   const projectPath = config.ios.project ?? config.ios.workspace;
   return Boolean(projectPath && path.resolve(cwd, projectPath));
 }

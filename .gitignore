@@ -1,6 +1,6 @@
 node_modules/
 dist/
-.codexpilot-ios/
+.shippilot/
 .codex/
 coverage/
 *.tgz

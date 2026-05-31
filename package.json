@@ -1,5 +1,5 @@
 {
-  "name": "codexpilot-ios",
+  "name": "shippilot",
   "version": "0.1.0",
   "description": "Agentic iOS QA runner for Codex, GitHub Actions, and Bitrise",
   "type": "module",
@@ -7,14 +7,14 @@
   "author": "Mahmoud Ashraf",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mahmoudashraf93/CodexPilot-iOS.git"
+    "url": "git+https://github.com/mahmoudashraf93/ShipPilot.git"
   },
-  "homepage": "https://github.com/mahmoudashraf93/CodexPilot-iOS#readme",
+  "homepage": "https://github.com/mahmoudashraf93/ShipPilot#readme",
   "bugs": {
-    "url": "https://github.com/mahmoudashraf93/CodexPilot-iOS/issues"
+    "url": "https://github.com/mahmoudashraf93/ShipPilot/issues"
   },
   "bin": {
-    "codexpilot-ios": "./dist/cli.js"
+    "shippilot": "./dist/cli.js"
   },
   "files": [
     "dist",

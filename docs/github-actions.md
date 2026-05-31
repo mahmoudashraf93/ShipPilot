@@ -2,14 +2,14 @@
 
 Use macOS runners because iOS simulator testing requires Xcode.
 
-Install XcodeBuildMCP before running CodexPilot iOS if your runner image does not already include it:
+Install XcodeBuildMCP before running ShipPilot if your runner image does not already include it:
 
 ```bash
 npm install -g xcodebuildmcp
 ```
 
 ```yaml
-name: CodexPilot iOS QA
+name: ShipPilot QA
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ on:
     types: [published]
 
 jobs:
-  codexpilot-ios:
+  shippilot:
     runs-on: macos-15
     permissions:
       contents: read
@@ -34,7 +34,7 @@ jobs:
       - name: Install XcodeBuildMCP
         run: npm install -g xcodebuildmcp
 
-      - name: Run CodexPilot iOS
+      - name: Run ShipPilot
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           CODEX_ACCESS_TOKEN: ${{ secrets.CODEX_ACCESS_TOKEN }}
@@ -42,15 +42,15 @@ jobs:
           TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
         run: |
-          npx codexpilot-ios doctor
-          npx codexpilot-ios run --case qa/login.md
+          npx shippilot doctor
+          npx shippilot run --case qa/login.md
 
-      - name: Upload CodexPilot iOS report
+      - name: Upload ShipPilot report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: codexpilot-ios-report
-          path: .codexpilot-ios/
+          name: shippilot-report
+          path: .shippilot/
 ```
 
 For open-source projects, prefer `workflow_dispatch`, releases, schedules, or maintainer-approved labels. Do not expose secrets to arbitrary fork PRs.

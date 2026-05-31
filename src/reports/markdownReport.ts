@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import type { CodexPilotConfig } from "../config/schema.js";
+import type { ShipPilotConfig } from "../config/schema.js";
 import type { RunReport } from "./jsonReport.js";
 
 function statusIcon(status: string): string {
@@ -11,7 +11,7 @@ function statusIcon(status: string): string {
 
 export function renderMarkdownReport(report: RunReport): string {
   const lines = [
-    "# CodexPilot iOS Report",
+    "# ShipPilot Report",
     "",
     `Status: ${statusIcon(report.status)}`,
     `Started: ${report.started_at}`,
@@ -56,7 +56,7 @@ export function renderMarkdownReport(report: RunReport): string {
 }
 
 export function writeMarkdownReport(
-  config: CodexPilotConfig,
+  config: ShipPilotConfig,
   report: RunReport,
   cwd = process.cwd(),
 ): void {

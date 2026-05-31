@@ -35,7 +35,7 @@ export const configSchema = z
     }),
     reports: z
       .object({
-        output_dir: z.string().default(".codexpilot-ios"),
+        output_dir: z.string().default(".shippilot"),
         markdown: z.boolean().default(true),
         json: z.boolean().default(true),
         junit: z.boolean().default(true),
@@ -43,7 +43,7 @@ export const configSchema = z
         logs: z.boolean().default(true),
       })
       .default({
-        output_dir: ".codexpilot-ios",
+        output_dir: ".shippilot",
         markdown: true,
         json: true,
         junit: true,
@@ -75,4 +75,4 @@ export const configSchema = z
     }
   });
 
-export type CodexPilotConfig = z.infer<typeof configSchema>;
+export type ShipPilotConfig = z.infer<typeof configSchema>;

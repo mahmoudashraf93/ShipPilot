@@ -1,9 +1,9 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import type { CodexPilotConfig } from "../config/schema.js";
+import type { ShipPilotConfig } from "../config/schema.js";
 import { runCommand, type CheckResult } from "./xcodebuildmcp.js";
 
-export function doctorXcode(config: CodexPilotConfig, cwd = process.cwd()): CheckResult[] {
+export function doctorXcode(config: ShipPilotConfig, cwd = process.cwd()): CheckResult[] {
   const projectPath = config.ios.project ?? config.ios.workspace;
   const checks: CheckResult[] = [
     runCommand("xcodebuild", ["-version"], cwd),

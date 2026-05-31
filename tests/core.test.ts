@@ -29,7 +29,7 @@ describe("config schema", () => {
 
 describe("QA cases", () => {
   it("parses front matter and resolves required env placeholders", () => {
-    const dir = mkdtempSync(path.join(os.tmpdir(), "codexpilot-ios-test-"));
+    const dir = mkdtempSync(path.join(os.tmpdir(), "shippilot-test-"));
     writeFileSync(
       path.join(dir, "login.md"),
       `---

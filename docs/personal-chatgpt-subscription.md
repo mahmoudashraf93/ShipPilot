@@ -2,7 +2,7 @@
 
 The clean hosted-CI path is `OPENAI_API_KEY`. Personal ChatGPT subscription auth is browser/session based and is not a first-class hosted CI credential.
 
-CodexPilot iOS supports one experimental hosted-runner path:
+ShipPilot supports one experimental hosted-runner path:
 
 1. Log in locally:
    ```bash
