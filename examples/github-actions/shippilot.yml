@@ -23,8 +23,6 @@ jobs:
       - name: Run ShipPilot
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          CODEX_ACCESS_TOKEN: ${{ secrets.CODEX_ACCESS_TOKEN }}
-          CODEX_HOME_TGZ_BASE64: ${{ secrets.CODEX_HOME_TGZ_BASE64 }}
           TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
         run: |

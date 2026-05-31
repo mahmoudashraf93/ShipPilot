@@ -28,8 +28,6 @@ jobs:
       - name: Run ShipPilot
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          CODEX_ACCESS_TOKEN: ${{ secrets.CODEX_ACCESS_TOKEN }}
-          CODEX_HOME_TGZ_BASE64: ${{ secrets.CODEX_HOME_TGZ_BASE64 }}
           TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
         run: |
@@ -44,4 +42,4 @@ jobs:
           path: .shippilot/
 ```
 
-For open-source projects, prefer `workflow_dispatch`, releases, schedules, or maintainer-approved labels. Do not expose secrets to arbitrary fork PRs.
+For open-source projects, prefer `workflow_dispatch`, releases, schedules, or maintainer-approved labels. ShipPilot blocks secret-backed GitHub fork PR runs by default; set `SHIPPILOT_ALLOW_UNTRUSTED_SECRETS=true` only after confirming the runner is trusted.

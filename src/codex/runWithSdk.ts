@@ -46,7 +46,7 @@ function runProcess(
 ): Promise<ProcessResult> {
   return new Promise((resolve, reject) => {
     if (options.verbose) {
-      console.log(`[shippilot] $ ${[command, ...args].join(" ")}`);
+      console.log(options.redactor.redact(`[shippilot] $ ${[command, ...args].join(" ")}`));
     }
 
     const child = spawn(command, args, {
@@ -197,7 +197,7 @@ function parseSimulatorId(output: string, simulatorName: string): string | null 
   return null;
 }
 
-function logCodexEvent(event: unknown, redactor: Redactor): void {
+export function logCodexEvent(event: unknown, redactor: Redactor): void {
   const typed = event as {
     type?: string;
     item?: {
@@ -222,7 +222,7 @@ function logCodexEvent(event: unknown, redactor: Redactor): void {
 
   if (typed.type === "item.started" && typed.item) {
     if (typed.item.type === "command_execution") {
-      console.log(`[shippilot:agent] command started: ${typed.item.command ?? ""}`);
+      console.log(`[shippilot:agent] command started: ${redactor.redact(typed.item.command ?? "")}`);
       return;
     }
     if (typed.item.type === "mcp_tool_call") {
@@ -245,7 +245,7 @@ function logCodexEvent(event: unknown, redactor: Redactor): void {
     if (typed.item.type === "command_execution") {
       console.log(
         `[shippilot:agent] command ${typed.item.status ?? "completed"} exit=${typed.item.exit_code ?? "n/a"}: ${
-          typed.item.command ?? ""
+          redactor.redact(typed.item.command ?? "")
         }`,
       );
       if (typed.item.aggregated_output) {

@@ -120,7 +120,7 @@ codex:
 
 XcodeBuildMCP needs access to CoreSimulator services outside the repository workspace. More restrictive sandbox modes can build the app but fail once the agent tries to inspect UI, tap controls, or capture screenshots.
 
-Run ShipPilot only in trusted workflows when secrets are present. For open-source repositories, prefer `workflow_dispatch`, releases, schedules, or maintainer-approved workflows. Use `actions/checkout` with `persist-credentials: false`.
+Run ShipPilot only in trusted workflows when secrets are present. For open-source repositories, prefer `workflow_dispatch`, releases, schedules, or maintainer-approved workflows. ShipPilot blocks secret-backed GitHub fork PR runs by default; set `SHIPPILOT_ALLOW_UNTRUSTED_SECRETS=true` only after confirming the runner is trusted. Use `actions/checkout` with `persist-credentials: false`.
 
 ## GitHub Actions
 
@@ -149,8 +149,6 @@ jobs:
       - name: Run ShipPilot
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          CODEX_ACCESS_TOKEN: ${{ secrets.CODEX_ACCESS_TOKEN }}
-          CODEX_HOME_TGZ_BASE64: ${{ secrets.CODEX_HOME_TGZ_BASE64 }}
           TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
         run: |
