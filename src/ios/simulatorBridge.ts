@@ -13,7 +13,6 @@ export const simulatorBridgeToolNames = [
   "type_text",
   "type_env",
   "swipe",
-  "button",
   "stop_app",
   "launch_app",
 ] as const;
@@ -47,8 +46,6 @@ type BridgeCommand = {
   successText?: string;
 };
 
-const buttonTypes = ["apple-pay", "home", "lock", "side-button", "siri"] as const;
-
 const optionalDelayInputSchema = {
   preDelay: z.number().optional().describe("Seconds to wait before the action."),
   postDelay: z.number().optional().describe("Seconds to wait after the action."),
@@ -78,10 +75,6 @@ export const simulatorBridgeToolInputSchemas = {
     duration: z.number().optional().describe("Swipe duration in seconds."),
     delta: z.number().optional().describe("Optional scroll delta."),
     ...optionalDelayInputSchema,
-  },
-  button: {
-    buttonType: z.enum(buttonTypes).describe("Simulator hardware button to press."),
-    duration: z.number().optional().describe("Button press duration in seconds."),
   },
   stop_app: {},
   launch_app: {},
@@ -193,17 +186,6 @@ export function buildSimulatorBridgeCommand(
       if (duration !== undefined) args.push("--duration", String(duration));
       if (delta !== undefined) args.push("--delta", String(delta));
       return { args: withOptionalDelayArgs(args, input) };
-    }
-
-    case "button": {
-      const buttonType = requireString(input.buttonType, "buttonType");
-      if (!(buttonTypes as readonly string[]).includes(buttonType)) {
-        throw new Error(`buttonType must be one of: ${buttonTypes.join(", ")}.`);
-      }
-      const args = ["ui-automation", "button", "--simulator-id", context.simulatorId, "--button-type", buttonType];
-      const duration = optionalFiniteNumber(input.duration, "duration");
-      if (duration !== undefined) args.push("--duration", String(duration));
-      return { args };
     }
 
     case "stop_app":

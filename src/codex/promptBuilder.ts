@@ -34,7 +34,7 @@ export function buildCodexPrompt(
     "",
     "Available simulator tools:",
     "- Use only the shippilot_simulator MCP tools for UI automation.",
-    "- Available tools are snapshot_ui, screenshot, tap, type_text, type_env, swipe, button, stop_app, and launch_app.",
+    "- Available tools are snapshot_ui, screenshot, tap, type_text, type_env, swipe, stop_app, and launch_app.",
     `- App target: ${projectRef}, scheme ${config.ios.scheme}, simulator ${config.ios.simulator}.`,
     `- The app is already built, installed, and launched with bundle id ${runtime.bundleId}.`,
     `- ShipPilot has already bound the simulator session ${runtime.simulatorId} to the tools.`,

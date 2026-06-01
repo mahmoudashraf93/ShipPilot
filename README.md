@@ -118,7 +118,7 @@ codex:
   sandbox: workspace-write
 ```
 
-ShipPilot keeps Codex in a workspace sandbox and exposes simulator UI automation through a ShipPilot-controlled MCP bridge. The bridge only provides allowlisted QA tools such as snapshot, screenshot, tap, type, swipe, and app relaunch. Codex default shell tools are disabled during the QA turn, and the local bridge tools are auto-approved so CI can run non-interactively.
+ShipPilot keeps Codex in a workspace sandbox and exposes simulator UI automation through a ShipPilot-controlled MCP bridge. The bridge only provides allowlisted QA tools such as snapshot, screenshot, tap, type, swipe, stop app, and app relaunch. Codex default shell tools are disabled during the QA turn, and the local bridge tools are auto-approved so CI can run non-interactively.
 
 This reduces prompt-injection blast radius. QA case text, app UI text, screenshots, logs, and files are treated as untrusted inputs. During the QA turn, injected instructions cannot use normal Codex shell, git, filesystem, web search, dependency install, or network tools because those tools are not exposed. The simulator bridge binds the target simulator and bundle id, and declared secret values are typed through `type_env` without printing them back to the agent.
 
