@@ -15,6 +15,13 @@ import { writeJsonReport, readJsonReport, type RunReport } from "./reports/jsonR
 import { writeMarkdownReport } from "./reports/markdownReport.js";
 import { writeJunitReport } from "./reports/junitReport.js";
 import { ExitCodes } from "./exitCodes.js";
+import {
+  applyWallLimitAndSort,
+  loadWallEntries,
+  renderWallOutput,
+  submitWallEntry,
+  type WallSubmitResult,
+} from "./wall/wall.js";
 
 type GlobalOptions = {
   config?: string;
@@ -36,6 +43,36 @@ function exitCodeFor(report: RunReport, failOn: "failed_or_blocked" | "never"): 
 function printCheck(name: string, ok: boolean, detail?: string): void {
   const marker = ok ? "PASS" : "FAIL";
   console.log(`${marker} ${name}${detail ? `: ${detail.split("\n")[0]}` : ""}`);
+}
+
+function wallOutput(value: string): "table" | "json" | "markdown" {
+  if (value === "table" || value === "json" || value === "markdown") return value;
+  throw new Error("--output must be table, json, or markdown.");
+}
+
+function printWallSubmitResult(result: WallSubmitResult): void {
+  console.log(
+    JSON.stringify(
+      {
+        mode: result.mode,
+        appId: result.appId,
+        app: result.app,
+        link: result.link,
+        icon: result.icon,
+        upstreamRepo: result.upstreamRepo,
+        forkRepo: result.forkRepo,
+        branch: result.branch,
+        changedFiles: result.changedFiles,
+        commitMessage: result.commitMessage,
+        pullRequestTitle: result.pullRequestTitle,
+        pullRequestBody: result.pullRequestBody,
+        pullRequestUrl: result.pullRequestUrl,
+        warnings: result.warnings,
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 async function main(): Promise<void> {
@@ -240,6 +277,60 @@ shippilot run --case qa/login.md
         process.exitCode = ExitCodes.setupError;
       }
     });
+
+  const wall = program
+    .command("wall")
+    .description("Show or contribute to the ShipPilot Wall of Apps")
+    .option("--output <format>", "output format: table, json, or markdown", "table")
+    .option("--sort <field>", "sort by name or -name", "name")
+    .option("--limit <number>", "maximum number of apps to include (1-200)", "0")
+    .option("--source <path-or-url>", "wall source JSON path or URL")
+    .action(async (wallOptions: { output: string; sort: string; limit: string; source?: string }) => {
+      try {
+        const limit = Number(wallOptions.limit);
+        if (!Number.isInteger(limit)) throw new Error("--limit must be an integer.");
+        const entries = applyWallLimitAndSort(
+          await loadWallEntries({ source: wallOptions.source }),
+          wallOptions.sort,
+          limit,
+        );
+        console.log(renderWallOutput(entries, wallOutput(wallOptions.output)));
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+        process.exitCode = ExitCodes.setupError;
+      }
+    });
+
+  wall
+    .command("submit")
+    .description("Open a Wall of Apps pull request using your authenticated gh session")
+    .option("--app <id-or-url>", "App Store app ID or App Store URL")
+    .option("--country <code>", "App Store lookup country code", "us")
+    .option("--name <name>", "manual app name or App Store lookup override")
+    .option("--link <url>", "manual app URL or App Store lookup override")
+    .option("--icon <url>", "manual app icon URL or App Store lookup override")
+    .option("--dry-run", "preview the fork, branch, and pull request plan without creating anything")
+    .option("--confirm", "create the fork, branch, commits, and pull request")
+    .action(
+      async (submitOptions: {
+        app?: string;
+        country?: string;
+        name?: string;
+        link?: string;
+        icon?: string;
+        dryRun?: boolean;
+        confirm?: boolean;
+      }) => {
+        try {
+          const result = await submitWallEntry(submitOptions);
+          printWallSubmitResult(result);
+          if (result.pullRequestUrl) console.error(`Pull request created: ${result.pullRequestUrl}`);
+        } catch (error) {
+          console.error(error instanceof Error ? error.message : String(error));
+          process.exitCode = ExitCodes.setupError;
+        }
+      },
+    );
 
   await program.parseAsync(process.argv);
 }

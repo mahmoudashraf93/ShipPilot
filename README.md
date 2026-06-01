@@ -206,9 +206,24 @@ ShipPilot exits like a test runner:
 
 Set `codex.fail_on: never` for report-only mode.
 
+## Wall of Apps
+
+Apps using ShipPilot can be added to the Wall of Apps with a contributor pull request:
+
+```bash
+npx shippilot wall submit --app "1234567890" --dry-run
+npx shippilot wall submit --app "1234567890" --confirm
+```
+
+The submit command resolves the public App Store name, URL, and icon automatically. It uses your authenticated `gh` session to fork ShipPilot, update `docs/wall-of-apps.json` and this README, and open a pull request.
+
+<!-- shippilot-wall:start -->
+No apps are on the wall yet. Add yours with `shippilot wall submit --app "1234567890" --dry-run`.
+<!-- shippilot-wall:end -->
+
 ## Contribution Guide
 
-Contributions should keep ShipPilot test-and-report focused. Avoid features that let the CI agent edit source, commit, push, or open PRs unless that behavior is explicitly designed behind a separate mode.
+Contributions should keep ShipPilot test-and-report focused. Avoid features that let the CI agent edit source, commit, push, or open PRs unless that behavior is explicitly designed behind a separate mode such as Wall of Apps submissions.
 
 Before opening a PR:
 
