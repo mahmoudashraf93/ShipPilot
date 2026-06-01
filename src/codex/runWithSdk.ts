@@ -384,7 +384,7 @@ export async function runCaseWithSdk(
     env: process.env,
     verbose,
     redactor,
-    timeoutMs: 3 * 60 * 1000,
+    timeoutMs: 8 * 60 * 1000,
   });
   if (bootStatus.status !== 0) {
     const detail = redactor.redact(
