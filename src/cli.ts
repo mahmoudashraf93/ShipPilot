@@ -44,7 +44,7 @@ async function main(): Promise<void> {
   program
     .name("shippilot")
     .description("ShipPilot: agentic iOS QA runner for Codex")
-    .version("0.0.2")
+    .version("0.1.0")
     .option("-c, --config <path>", "config file path", "shippilot.yml");
 
   program.command("init").description("Scaffold ShipPilot config, sample case, and CI templates").action(() => {

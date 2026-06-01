@@ -2,6 +2,22 @@
 
 All notable changes to ShipPilot will be documented in this file.
 
+## 0.1.0 - 2026-06-01
+
+### Added
+
+- Added the ShipPilot simulator MCP bridge so Codex QA runs only receive a small allowlist of simulator tools.
+- Added explicit MCP input schemas for simulator UI tools such as tap, screenshot, swipe, text entry, and app launch controls.
+- Added trusted-runner checks for secret-backed GitHub Actions runs.
+- Added stronger secret redaction, including transformed secret values.
+
+### Changed
+
+- Disabled default Codex tools and web search during QA execution.
+- Updated QA prompts and security docs to treat QA case text, app UI, screenshots, logs, and files as untrusted data.
+- Treat already-booted simulators as a recoverable setup condition.
+- Normalized the package bin path.
+
 ## 0.0.2 - 2026-05-31
 
 ### Changed

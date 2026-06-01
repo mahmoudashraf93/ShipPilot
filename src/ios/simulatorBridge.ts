@@ -281,7 +281,7 @@ async function executeBridgeTool(
 }
 
 function createMcpServer(context: SimulatorBridgeContext): McpServer {
-  const server = new McpServer({ name: "shippilot-simulator", version: "0.0.2" });
+  const server = new McpServer({ name: "shippilot-simulator", version: "0.1.0" });
 
   for (const toolName of simulatorBridgeToolNames) {
     server.registerTool(
