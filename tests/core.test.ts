@@ -10,7 +10,12 @@ import { createRedactor } from "../src/security/redact.js";
 import { assertTrustedRunnerForSecrets } from "../src/security/trustedRunner.js";
 import { summarizeStatus } from "../src/reports/jsonReport.js";
 import { buildCodexPrompt } from "../src/codex/promptBuilder.js";
-import { buildCodexCliConfig, buildCodexProcessEnv, isSimulatorAlreadyBooted } from "../src/codex/runWithSdk.js";
+import {
+  bootStatusWarning,
+  buildCodexCliConfig,
+  buildCodexProcessEnv,
+  isSimulatorAlreadyBooted,
+} from "../src/codex/runWithSdk.js";
 import {
   buildSimulatorBridgeCommand,
   simulatorBridgeToolInputSchemas,
@@ -210,6 +215,17 @@ describe("simulator setup", () => {
         timedOut: false,
       }),
     ).toBe(true);
+  });
+
+  it("treats bootstatus timeouts after boot as recoverable", () => {
+    expect(
+      bootStatusWarning({
+        status: null,
+        stdout: "",
+        stderr: "",
+        timedOut: true,
+      }),
+    ).toMatch(/continuing to build and launch/);
   });
 });
 

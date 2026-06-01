@@ -100,6 +100,14 @@ export function isSimulatorAlreadyBooted(result: ProcessResult): boolean {
   return combinedOutput(result).includes("Unable to boot device in current state: Booted");
 }
 
+export function bootStatusWarning(result: ProcessResult): string {
+  return result.timedOut
+    ? "Simulator bootstatus timed out after boot succeeded; continuing to build and launch."
+    : `Simulator bootstatus returned a non-zero status after boot succeeded; continuing to build and launch. ${combinedOutput(
+        result,
+      )}`.trim();
+}
+
 function blockedRecord(
   qaCase: ResolvedCase,
   startedAt: string,
@@ -384,15 +392,10 @@ export async function runCaseWithSdk(
     env: process.env,
     verbose,
     redactor,
-    timeoutMs: 8 * 60 * 1000,
+    timeoutMs: 60 * 1000,
   });
-  if (bootStatus.status !== 0) {
-    const detail = redactor.redact(
-      bootStatus.timedOut
-        ? "Timed out while waiting for the simulator to finish booting."
-        : combinedOutput(bootStatus) || "Unknown simulator bootstatus error",
-    );
-    return blockedRecord(qaCase, startedAt, "The simulator did not finish booting before QA execution.", detail);
+  if (bootStatus.status !== 0 && verbose) {
+    console.warn(redactor.redact(`[shippilot] ${bootStatusWarning(bootStatus)}`));
   }
 
   const build = await runProcess(xcodeBuildMcp, buildArgs(config, simulatorId), {
