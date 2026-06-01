@@ -108,6 +108,10 @@ export function bootStatusWarning(result: ProcessResult): string {
       )}`.trim();
 }
 
+export function launchTimeoutWarning(): string {
+  return "App launch timed out after install; continuing so QA can inspect the simulator and use the launch_app tool if needed.";
+}
+
 function blockedRecord(
   qaCase: ResolvedCase,
   startedAt: string,
@@ -482,11 +486,11 @@ export async function runCaseWithSdk(
       });
       if (fallbackLaunch.status === 0) {
         console.log("[shippilot] xcodebuildmcp launch timed out; continued after successful simctl launch fallback.");
+      } else if (fallbackLaunch.timedOut) {
+        console.warn(redactor.redact(`[shippilot] ${launchTimeoutWarning()}`));
       } else {
         const fallbackDetail = redactor.redact(
-          fallbackLaunch.timedOut
-            ? "Timed out while launching the app with xcodebuildmcp and simctl fallback."
-            : combinedOutput(fallbackLaunch) || combinedOutput(launch) || "Unknown launch error",
+          combinedOutput(fallbackLaunch) || combinedOutput(launch) || "Unknown launch error",
         );
         return blockedRecord(qaCase, startedAt, "The app could not be launched before QA execution.", fallbackDetail);
       }

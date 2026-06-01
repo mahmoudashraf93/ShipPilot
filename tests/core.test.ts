@@ -15,6 +15,7 @@ import {
   buildCodexCliConfig,
   buildCodexProcessEnv,
   isSimulatorAlreadyBooted,
+  launchTimeoutWarning,
 } from "../src/codex/runWithSdk.js";
 import {
   buildSimulatorBridgeCommand,
@@ -226,6 +227,10 @@ describe("simulator setup", () => {
         timedOut: true,
       }),
     ).toMatch(/continuing to build and launch/);
+  });
+
+  it("treats launch timeouts after install as recoverable", () => {
+    expect(launchTimeoutWarning()).toMatch(/use the launch_app tool if needed/);
   });
 });
 
