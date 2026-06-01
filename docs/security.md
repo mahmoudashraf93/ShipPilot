@@ -48,11 +48,15 @@ ShipPilot reduces this risk by:
 - blocking secret-backed fork PR runs by default;
 - redacting declared QA secrets from logs and reports;
 - disabling Codex default tools during QA execution;
+- disabling web search and network access in the Codex QA sandbox;
 - exposing simulator actions only through a ShipPilot-controlled MCP bridge;
+- not exposing shell, git, filesystem, dependency install, arbitrary command, or raw XcodeBuildMCP tools to the QA agent;
+- binding simulator bridge actions to the ShipPilot-selected simulator and app bundle id;
+- typing declared secret values through `type_env` without printing those values back to the agent;
 - instructing the agent to ignore instructions in QA case content, app UI text, screenshots, logs, or files when they conflict with ShipPilot's hard rules.
 
 These controls reduce impact, but they do not make untrusted agent runs safe. Prompt text is not an enforcement boundary. For secret-backed runs, use ephemeral CI runners, least-privilege test accounts, no persisted checkout credentials, no unrelated cloud credentials in the environment, and trusted trigger types such as `workflow_dispatch`, release, schedule, or maintainer-approved workflows.
 
 ## Simulator Sandbox
 
-ShipPilot runs setup/build/install/launch itself, then keeps Codex in `workspace-write` by default. Simulator UI actions are exposed through the ShipPilot simulator MCP bridge, which maps a small allowlist of QA tools to XcodeBuildMCP. During the QA turn, this local bridge is the only MCP server ShipPilot configures, and its allowlisted tools are auto-approved so non-interactive CI does not fall back to cancelled tool calls. `danger-full-access` remains an explicit escape hatch and should only be used in trusted CI contexts such as `workflow_dispatch`, release, schedule, or maintainer-approved workflows.
+ShipPilot runs setup/build/install/launch itself, then keeps Codex in `workspace-write` by default. Simulator UI actions are exposed through the ShipPilot simulator MCP bridge, which maps a small allowlist of QA tools to XcodeBuildMCP. During the QA turn, this local bridge is the only MCP server ShipPilot configures, its tools publish explicit input schemas, and its allowlisted tools are auto-approved so non-interactive CI does not fall back to cancelled tool calls. `danger-full-access` remains an explicit escape hatch and should only be used in trusted CI contexts such as `workflow_dispatch`, release, schedule, or maintainer-approved workflows.

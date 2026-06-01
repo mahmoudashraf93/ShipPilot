@@ -6,7 +6,8 @@ ShipPilot is pre-1.0 software. Security fixes are provided for the latest publis
 
 | Version | Supported |
 | ------- | --------- |
-| 0.0.x   | Yes       |
+| 0.1.x   | Yes       |
+| < 0.1   | No        |
 
 ## Reporting A Vulnerability
 
