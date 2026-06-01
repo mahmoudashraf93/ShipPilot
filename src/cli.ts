@@ -58,7 +58,7 @@ async function main(): Promise<void> {
   engine: sdk
   auth: api_key
   model: default
-  sandbox: danger-full-access
+  sandbox: workspace-write
   fail_on: failed_or_blocked
   allow_experimental_personal_hosted_auth: false
   verbose: false

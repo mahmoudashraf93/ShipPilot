@@ -16,6 +16,7 @@ import {
   launchArgs,
   resolveXcodeBuildMcpCommand,
 } from "../ios/xcodebuildmcp.js";
+import { simulatorBridgeToolNames, startSimulatorBridge } from "../ios/simulatorBridge.js";
 import { buildCodexPrompt } from "./promptBuilder.js";
 import { codexOutputJsonSchema, parseCodexResult, type CodexCaseResult } from "./outputSchema.js";
 
@@ -32,6 +33,9 @@ type ProcessResult = {
   stderr: string;
   timedOut: boolean;
 };
+
+type CodexConfigValue = string | number | boolean | CodexConfigValue[] | { [key: string]: CodexConfigValue };
+type CodexConfigObject = { [key: string]: CodexConfigValue };
 
 function runProcess(
   command: string,
@@ -90,6 +94,10 @@ function runProcess(
 
 function combinedOutput(result: ProcessResult): string {
   return [result.stdout, result.stderr].filter(Boolean).join("\n");
+}
+
+export function isSimulatorAlreadyBooted(result: ProcessResult): boolean {
+  return combinedOutput(result).includes("Unable to boot device in current state: Booted");
 }
 
 function blockedRecord(
@@ -195,6 +203,51 @@ function parseSimulatorId(output: string, simulatorName: string): string | null 
   }
 
   return null;
+}
+
+export function buildCodexCliConfig(bridgeUrl: string): CodexConfigObject {
+  return {
+    sandbox_workspace_write: { network_access: false },
+    web_search: "disabled",
+    tools: {
+      default_tools_enabled: false,
+    },
+    mcp_servers: {
+      shippilot_simulator: {
+        type: "http",
+        url: bridgeUrl,
+        enabled_tools: [...simulatorBridgeToolNames],
+        default_tools_approval_mode: "approve",
+        trust_level: "trusted",
+      },
+    },
+  };
+}
+
+export function buildCodexProcessEnv(env: Record<string, string>): Record<string, string> {
+  const allowedKeys = [
+    "CODEX_HOME",
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "LOGNAME",
+    "PATH",
+    "SHELL",
+    "TMP",
+    "TMPDIR",
+    "TEMP",
+    "USER",
+    "XDG_CACHE_HOME",
+    "XDG_CONFIG_HOME",
+    "XDG_DATA_HOME",
+  ];
+
+  return Object.fromEntries(
+    allowedKeys
+      .map((key) => [key, env[key]] as const)
+      .filter((entry): entry is readonly [string, string] => typeof entry[1] === "string" && entry[1].length > 0),
+  );
 }
 
 export function logCodexEvent(event: unknown, redactor: Redactor): void {
@@ -316,11 +369,14 @@ export async function runCaseWithSdk(
     redactor,
     timeoutMs: 3 * 60 * 1000,
   });
-  if (boot.status !== 0) {
+  if (boot.status !== 0 && !isSimulatorAlreadyBooted(boot)) {
     const detail = redactor.redact(
       boot.timedOut ? "Timed out while booting the simulator." : combinedOutput(boot) || "Unknown simulator boot error",
     );
     return blockedRecord(qaCase, startedAt, "The simulator could not be booted before QA execution.", detail);
+  }
+  if (boot.status !== 0 && isSimulatorAlreadyBooted(boot) && verbose) {
+    console.log("[shippilot] simulator is already booted; continuing.");
   }
 
   const bootStatus = await runProcess("xcrun", ["simctl", "bootstatus", simulatorId, "-b"], {
@@ -438,13 +494,28 @@ export async function runCaseWithSdk(
   }
 
   const preparedAuth = prepareCodexAuth(config);
+  let bridge: Awaited<ReturnType<typeof startSimulatorBridge>> | undefined;
   try {
+    bridge = await startSimulatorBridge({
+      xcodeBuildMcp,
+      simulatorId,
+      bundleId,
+      cwd,
+      envValues: qaCase.envValues,
+      redactor,
+      verbose,
+    });
+
+    if (config.codex.sandbox === "danger-full-access") {
+      console.warn(
+        "[shippilot] warning: codex.sandbox is danger-full-access; workspace-write is recommended with the ShipPilot simulator bridge.",
+      );
+    }
+
     const codex = new Codex({
       apiKey: preparedAuth.apiKey,
-      env: preparedAuth.env,
-      config: {
-        sandbox_workspace_write: { network_access: false },
-      },
+      env: buildCodexProcessEnv(preparedAuth.env),
+      config: buildCodexCliConfig(bridge.url),
     });
 
     const thread = codex.startThread({
@@ -455,7 +526,7 @@ export async function runCaseWithSdk(
       ...(config.codex.model === "default" ? {} : { model: config.codex.model }),
     });
 
-    const prompt = buildCodexPrompt(config, qaCase, { simulatorId, bundleId, xcodeBuildMcp });
+    const prompt = buildCodexPrompt(config, qaCase, { simulatorId, bundleId });
     let rawResponse: string;
 
     if (verbose) {
@@ -511,6 +582,7 @@ export async function runCaseWithSdk(
       result: parsed,
     };
   } finally {
+    await bridge?.close().catch(() => undefined);
     preparedAuth.cleanup();
   }
 }

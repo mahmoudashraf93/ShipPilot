@@ -9,6 +9,8 @@ ShipPilot is designed for open-source CI, so secret handling is strict by defaul
 - Do not cache Codex auth by default.
 - Keep auth material in temporary directories.
 - Upload reports with `if: always()`, but never upload auth folders.
+- Run Codex with `workspace-write` by default.
+- Disable Codex default tools during QA execution and expose only the ShipPilot simulator bridge.
 - Secret-backed GitHub fork PR runs are blocked by default unless `SHIPPILOT_ALLOW_UNTRUSTED_SECRETS=true` is set.
 
 ## Redaction
@@ -45,10 +47,12 @@ ShipPilot reduces this risk by:
 - running with `approvalPolicy: never`;
 - blocking secret-backed fork PR runs by default;
 - redacting declared QA secrets from logs and reports;
+- disabling Codex default tools during QA execution;
+- exposing simulator actions only through a ShipPilot-controlled MCP bridge;
 - instructing the agent to ignore instructions in QA case content, app UI text, screenshots, logs, or files when they conflict with ShipPilot's hard rules.
 
 These controls reduce impact, but they do not make untrusted agent runs safe. Prompt text is not an enforcement boundary. For secret-backed runs, use ephemeral CI runners, least-privilege test accounts, no persisted checkout credentials, no unrelated cloud credentials in the environment, and trusted trigger types such as `workflow_dispatch`, release, schedule, or maintainer-approved workflows.
 
 ## Simulator Sandbox
 
-XcodeBuildMCP needs access to CoreSimulator services outside the repository workspace. For iOS simulator UI automation, set `codex.sandbox: danger-full-access` and run only in trusted CI contexts such as `workflow_dispatch`, release, schedule, or maintainer-approved workflows.
+ShipPilot runs setup/build/install/launch itself, then keeps Codex in `workspace-write` by default. Simulator UI actions are exposed through the ShipPilot simulator MCP bridge, which maps a small allowlist of QA tools to XcodeBuildMCP. During the QA turn, this local bridge is the only MCP server ShipPilot configures, and its allowlisted tools are auto-approved so non-interactive CI does not fall back to cancelled tool calls. `danger-full-access` remains an explicit escape hatch and should only be used in trusted CI contexts such as `workflow_dispatch`, release, schedule, or maintainer-approved workflows.

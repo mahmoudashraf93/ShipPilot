@@ -39,7 +39,7 @@ npx shippilot report --run .shippilot/run.json
 
 `codex.verbose: true` or `shippilot run --verbose` streams build output and Codex SDK events for CI debugging. It shows reasoning summaries and tool activity, not private chain-of-thought.
 
-For simulator UI automation, `codex.sandbox: danger-full-access` is required because XcodeBuildMCP must communicate with CoreSimulator services outside the repository workspace.
+For simulator UI automation, ShipPilot keeps Codex in `workspace-write` by default and exposes simulator actions through a ShipPilot-controlled MCP bridge. The parent ShipPilot process still communicates with XcodeBuildMCP/CoreSimulator for setup and the allowlisted bridge tools.
 
 ## Milestones
 
