@@ -9,11 +9,6 @@ All notable changes to ShipPilot will be documented in this file.
 - Added the Wall of Apps source data, README gallery section, listing command, and App Store-backed submission flow.
 - Added `shippilot wall submit --dry-run` previews and `--confirm` GitHub pull request creation through an authenticated `gh` session.
 
-### Changed
-
-- Continued QA setup after simulator launch timeouts so agents can relaunch the app when needed.
-- Tightened simulator bridge and prompt wording around the QA tool allowlist.
-
 ## 0.1.0 - 2026-06-01
 
 ### Added
