@@ -206,25 +206,6 @@ ShipPilot exits like a test runner:
 
 Set `codex.fail_on: never` for report-only mode.
 
-## Wall of Apps
-
-Apps using ShipPilot can be added to the Wall of Apps with a contributor pull request:
-
-```bash
-npx shippilot wall submit --app "1234567890" --dry-run
-npx shippilot wall submit --app "1234567890" --confirm
-```
-
-The submit command resolves the public App Store name, URL, and icon automatically. It uses your authenticated `gh` session to fork ShipPilot, update `docs/wall-of-apps.json` and this README, and open a pull request.
-
-<!-- shippilot-wall:start -->
-<table>
-  <tr>
-    <td align="center" width="120"><a href="https://apps.apple.com/us/app/trainerskit-client-tracker/id6446181545?uo=4"><img src="https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/31/93/47/319347cd-f815-b7cd-c091-02401dba4cd2/AppIcon-0-0-1x_U007ephone-0-1-85-220.png/512x512bb.jpg" alt="TrainersKit: Client Tracker icon" width="64" height="64"><br>TrainersKit: Client Tracker</a></td>
-  </tr>
-</table>
-<!-- shippilot-wall:end -->
-
 ## Contribution Guide
 
 Contributions should keep ShipPilot test-and-report focused. Avoid features that let the CI agent edit source, commit, push, or open PRs unless that behavior is explicitly designed behind a separate mode such as Wall of Apps submissions.
@@ -260,3 +241,22 @@ Useful areas to improve:
 - [Release process](docs/release.md)
 - [Personal ChatGPT subscription](docs/personal-chatgpt-subscription.md)
 - [Security](docs/security.md)
+
+## Wall of Apps
+
+Apps using ShipPilot can be added to the Wall of Apps with a contributor pull request:
+
+```bash
+npx shippilot wall submit --app "1234567890" --dry-run
+npx shippilot wall submit --app "1234567890" --confirm
+```
+
+The submit command resolves the public App Store name, URL, and icon automatically. It uses your authenticated `gh` session to fork ShipPilot, update `docs/wall-of-apps.json` and this README, and open a pull request.
+
+<!-- shippilot-wall:start -->
+<table>
+  <tr>
+    <td align="center" width="80"><a href="https://apps.apple.com/us/app/trainerskit-client-tracker/id6446181545?uo=4"><img src="https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/31/93/47/319347cd-f815-b7cd-c091-02401dba4cd2/AppIcon-0-0-1x_U007ephone-0-1-85-220.png/512x512bb.jpg" alt="TrainersKit: Client Tracker icon" title="TrainersKit: Client Tracker" width="64" height="64"></a></td>
+  </tr>
+</table>
+<!-- shippilot-wall:end -->

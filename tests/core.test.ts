@@ -562,7 +562,9 @@ ${wallEndMarker}
 
     expect(rendered).toContain(wallStartMarker);
     expect(rendered).toContain(wallEndMarker);
-    expect(rendered).toContain("Alpha App");
+    expect(rendered).toContain(
+      '<td align="center" width="80"><a href="https://apps.apple.com/us/app/alpha/id111"><img src="https://example.com/alpha.png" alt="Alpha App icon" title="Alpha App" width="64" height="64"></a></td>',
+    );
     expect(rendered).toContain("<table>");
     expect(rendered).not.toContain("old content");
   });

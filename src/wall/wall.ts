@@ -129,9 +129,9 @@ export function renderWallMarkdown(entries: WallEntry[]): string {
     "  <tr>",
     ...canonical.map(
       (entry) =>
-        `    <td align="center" width="120"><a href="${escapeHtml(entry.link)}"><img src="${escapeHtml(
+        `    <td align="center" width="80"><a href="${escapeHtml(entry.link)}"><img src="${escapeHtml(
           entry.icon,
-        )}" alt="${escapeHtml(entry.app)} icon" width="64" height="64"><br>${escapeHtml(entry.app)}</a></td>`,
+        )}" alt="${escapeHtml(entry.app)} icon" title="${escapeHtml(entry.app)}" width="64" height="64"></a></td>`,
     ),
     "  </tr>",
     "</table>",
