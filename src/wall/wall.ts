@@ -174,7 +174,9 @@ export function applyWallLimitAndSort(entries: WallEntry[], sort: string, limit:
 export async function loadWallEntries(options: { source?: string; cwd?: string; fetch?: typeof fetch } = {}): Promise<WallEntry[]> {
   const source = options.source?.trim();
   if (source) {
-    return decodeWallEntries(await readSourceText(source, options.fetch), source);
+    const resolvedSource =
+      isRemoteSource(source) || path.isAbsolute(source) ? source : path.resolve(options.cwd ?? process.cwd(), source);
+    return decodeWallEntries(await readSourceText(resolvedSource, options.fetch), resolvedSource);
   }
 
   const cwd = options.cwd ?? process.cwd();
@@ -203,15 +205,18 @@ export async function resolveWallEntry(options: WallSubmitOptions): Promise<{ en
     };
   }
 
-  if (!options.name || !options.link || !options.icon) {
+  const name = options.name?.trim();
+  const link = options.link?.trim();
+  const icon = options.icon?.trim();
+  if (!name || !link || !icon) {
     throw new Error("Manual wall submissions require --name, --link, and --icon.");
   }
 
   return {
     entry: {
-      app: options.name,
-      link: options.link,
-      icon: options.icon,
+      app: name,
+      link,
+      icon,
     },
   };
 }
@@ -345,7 +350,16 @@ async function createBranchOnFork(login: string, branch: string, gh: GhRunner): 
 
 async function putFileOnFork(login: string, branch: string, filePath: string, content: string, message: string, gh: GhRunner): Promise<void> {
   const sha = (
-    await gh(["api", `repos/${upstreamOwner}/${upstreamRepo}/contents/${filePath}`, "-f", `ref=${upstreamBranch}`, "--jq", ".sha"])
+    await gh([
+      "api",
+      `repos/${upstreamOwner}/${upstreamRepo}/contents/${filePath}`,
+      "--method",
+      "GET",
+      "-f",
+      `ref=${upstreamBranch}`,
+      "--jq",
+      ".sha",
+    ])
   ).trim();
   await gh([
     "api",
@@ -377,7 +391,7 @@ async function defaultGhRunner(args: string[]): Promise<string> {
 }
 
 async function readSourceText(source: string, fetchImpl: typeof fetch = fetch): Promise<string> {
-  if (source.startsWith("http://") || source.startsWith("https://")) {
+  if (isRemoteSource(source)) {
     const response = await fetchImpl(source);
     if (!response.ok) throw new Error(`Failed to fetch ${source}: ${response.status} ${response.statusText}`);
     return response.text();
@@ -395,15 +409,11 @@ async function readProjectBaseText(filePath: string, cwd: string, fetchImpl: typ
     }
   }
 
-  try {
-    return await readSourceText(`${rawBaseUrl}/${filePath}`, fetchImpl);
-  } catch (error) {
-    try {
-      return readFileSync(localPath, "utf8");
-    } catch {
-      throw error;
-    }
-  }
+  return readSourceText(`${rawBaseUrl}/${filePath}`, fetchImpl);
+}
+
+function isRemoteSource(source: string): boolean {
+  return source.startsWith("http://") || source.startsWith("https://");
 }
 
 function appStoreIdFromInput(input: string): string | null {

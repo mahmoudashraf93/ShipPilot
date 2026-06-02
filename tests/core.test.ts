@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -28,6 +28,7 @@ import type { RunReport } from "../src/reports/jsonReport.js";
 import {
   decodeWallEntries,
   lookupAppStoreApp,
+  loadWallEntries,
   renderWallJson,
   renderWallMarkdown,
   submitWallEntry,
@@ -570,6 +571,29 @@ ${wallEndMarker}
     expect(renderWallMarkdown([])).toContain("No apps are on the wall yet");
   });
 
+  it("resolves explicit local wall sources relative to cwd", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "shippilot-wall-source-"));
+    mkdirSync(path.join(dir, "fixtures"));
+    writeFileSync(
+      path.join(dir, "fixtures", "wall.json"),
+      JSON.stringify([
+        {
+          app: "Source App",
+          link: "https://example.com/source",
+          icon: "https://example.com/source.png",
+        },
+      ]),
+    );
+
+    await expect(loadWallEntries({ source: "fixtures/wall.json", cwd: dir })).resolves.toEqual([
+      {
+        app: "Source App",
+        link: "https://example.com/source",
+        icon: "https://example.com/source.png",
+      },
+    ]);
+  });
+
   it("resolves App Store metadata from lookup responses", async () => {
     const fetchMock = vi.fn(async () => {
       return new Response(
@@ -646,10 +670,13 @@ ${wallEndMarker}
       if (joined === "repo view tester/ShipPilot --json nameWithOwner --jq .nameWithOwner") return "tester/ShipPilot\n";
       if (joined === "api repos/mahmoudashraf93/ShipPilot/git/ref/heads/main --jq .object.sha") return "basesha\n";
       if (joined.startsWith("api -X POST repos/tester/ShipPilot/git/refs")) return "{}";
-      if (joined === "api repos/mahmoudashraf93/ShipPilot/contents/docs/wall-of-apps.json -f ref=main --jq .sha") {
+      if (
+        joined ===
+        "api repos/mahmoudashraf93/ShipPilot/contents/docs/wall-of-apps.json --method GET -f ref=main --jq .sha"
+      ) {
         return "wallsha\n";
       }
-      if (joined === "api repos/mahmoudashraf93/ShipPilot/contents/README.md -f ref=main --jq .sha") {
+      if (joined === "api repos/mahmoudashraf93/ShipPilot/contents/README.md --method GET -f ref=main --jq .sha") {
         return "readmesha\n";
       }
       if (joined.startsWith("api -X PUT repos/tester/ShipPilot/contents/docs/wall-of-apps.json")) return "{}";
@@ -687,6 +714,22 @@ ${wallEndMarker}
     expect(ghCalls.flat()).not.toContain("git");
   });
 
+  it("does not build confirmed submissions from local files when upstream fetch fails", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "shippilot-wall-confirm-"));
+    const fetchMock = vi.fn(async () => new Response("not found", { status: 404, statusText: "Not Found" }));
+
+    await expect(
+      submitWallEntry({
+        name: "Confirmed App",
+        link: "https://example.com/confirmed",
+        icon: "https://example.com/confirmed.png",
+        confirm: true,
+        cwd: dir,
+        fetch: fetchMock,
+      }),
+    ).rejects.toThrow(/Failed to fetch/);
+  });
+
   it("requires confirm unless dry-run is set", async () => {
     await expect(submitWallEntry({ name: "Manual", link: "https://example.com", icon: "https://example.com/i.png" }))
       .rejects.toThrow(/--confirm/);
@@ -696,5 +739,8 @@ ${wallEndMarker}
     await expect(submitWallEntry({ name: "Manual", link: "https://example.com", dryRun: true })).rejects.toThrow(
       /--name, --link, and --icon/,
     );
+    await expect(
+      submitWallEntry({ name: "   ", link: "https://example.com", icon: "https://example.com/i.png", dryRun: true }),
+    ).rejects.toThrow(/--name, --link, and --icon/);
   });
 });
