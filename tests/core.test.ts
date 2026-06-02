@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -25,6 +25,17 @@ import {
 import { renderMarkdownReport } from "../src/reports/markdownReport.js";
 import { renderJunitReport } from "../src/reports/junitReport.js";
 import type { RunReport } from "../src/reports/jsonReport.js";
+import {
+  decodeWallEntries,
+  lookupAppStoreApp,
+  loadWallEntries,
+  renderWallJson,
+  renderWallMarkdown,
+  submitWallEntry,
+  updateReadmeWallSection,
+  wallEndMarker,
+  wallStartMarker,
+} from "../src/wall/wall.js";
 
 const baseConfig: ShipPilotConfig = configSchema.parse({
   codex: { auth: "api_key" },
@@ -470,5 +481,266 @@ describe("report status", () => {
         },
       ]),
     ).toBe("failed");
+  });
+});
+
+describe("Wall of Apps", () => {
+  const readmeWithMarkers = `# ShipPilot
+
+## Wall of Apps
+
+${wallStartMarker}
+old content
+${wallEndMarker}
+`;
+
+  it("parses and renders canonical wall JSON", () => {
+    const entries = decodeWallEntries(
+      JSON.stringify([
+        {
+          app: "Beta App",
+          link: "https://apps.apple.com/us/app/beta/id222",
+          icon: "https://example.com/beta.png",
+        },
+        {
+          app: "Alpha App",
+          link: "https://apps.apple.com/us/app/alpha/id111",
+          icon: "https://example.com/alpha.png",
+        },
+      ]),
+    );
+
+    expect(entries.map((entry) => entry.app)).toEqual(["Alpha App", "Beta App"]);
+    expect(renderWallJson(entries)).toBe(
+      `[
+  {
+    "app": "Alpha App",
+    "link": "https://apps.apple.com/us/app/alpha/id111",
+    "icon": "https://example.com/alpha.png"
+  },
+  {
+    "app": "Beta App",
+    "link": "https://apps.apple.com/us/app/beta/id222",
+    "icon": "https://example.com/beta.png"
+  }
+]
+`,
+    );
+  });
+
+  it("rejects invalid and duplicate wall entries", () => {
+    expect(() => decodeWallEntries("")).toThrow(/empty/);
+    expect(() => decodeWallEntries(JSON.stringify([{ app: "No Icon", link: "https://example.com" }]))).toThrow(
+      /icon/,
+    );
+    expect(() =>
+      decodeWallEntries(
+        JSON.stringify([
+          {
+            app: "One",
+            link: "https://apps.apple.com/us/app/one/id123?uo=4",
+            icon: "https://example.com/one.png",
+          },
+          {
+            app: "Two",
+            link: "https://apps.apple.com/gb/app/two/id123",
+            icon: "https://example.com/two.png",
+          },
+        ]),
+      ),
+    ).toThrow(/Duplicate App Store app id/);
+  });
+
+  it("renders the README wall section between markers", () => {
+    const rendered = updateReadmeWallSection(readmeWithMarkers, [
+      {
+        app: "Alpha App",
+        link: "https://apps.apple.com/us/app/alpha/id111",
+        icon: "https://example.com/alpha.png",
+      },
+    ]);
+
+    expect(rendered).toContain(wallStartMarker);
+    expect(rendered).toContain(wallEndMarker);
+    expect(rendered).toContain("Alpha App");
+    expect(rendered).toContain("<table>");
+    expect(rendered).not.toContain("old content");
+  });
+
+  it("renders an empty wall message", () => {
+    expect(renderWallMarkdown([])).toContain("No apps are on the wall yet");
+  });
+
+  it("resolves explicit local wall sources relative to cwd", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "shippilot-wall-source-"));
+    mkdirSync(path.join(dir, "fixtures"));
+    writeFileSync(
+      path.join(dir, "fixtures", "wall.json"),
+      JSON.stringify([
+        {
+          app: "Source App",
+          link: "https://example.com/source",
+          icon: "https://example.com/source.png",
+        },
+      ]),
+    );
+
+    await expect(loadWallEntries({ source: "fixtures/wall.json", cwd: dir })).resolves.toEqual([
+      {
+        app: "Source App",
+        link: "https://example.com/source",
+        icon: "https://example.com/source.png",
+      },
+    ]);
+  });
+
+  it("resolves App Store metadata from lookup responses", async () => {
+    const fetchMock = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          resultCount: 1,
+          results: [
+            {
+              trackName: "Lookup App",
+              trackViewUrl: "https://apps.apple.com/us/app/lookup/id123",
+              artworkUrl512: "https://example.com/icon.png",
+            },
+          ],
+        }),
+      );
+    });
+
+    await expect(lookupAppStoreApp("123", "us", fetchMock)).resolves.toEqual({
+      app: "Lookup App",
+      link: "https://apps.apple.com/us/app/lookup/id123",
+      icon: "https://example.com/icon.png",
+    });
+  });
+
+  it("previews submit without GitHub mutations", async () => {
+    const gh = vi.fn(async () => {
+      throw new Error("gh should not be called in dry-run");
+    });
+    const fetchMock = vi.fn(async (input: URL | RequestInfo) => {
+      const url = String(input);
+      if (url.startsWith("https://itunes.apple.com/lookup")) {
+        return new Response(
+          JSON.stringify({
+            resultCount: 1,
+            results: [
+              {
+                trackName: "Preview App",
+                trackViewUrl: "https://apps.apple.com/us/app/preview/id123",
+                artworkUrl512: "https://example.com/preview.png",
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/docs/wall-of-apps.json")) return new Response("[]");
+      if (url.endsWith("/README.md")) return new Response(readmeWithMarkers);
+      return new Response("not found", { status: 404 });
+    });
+
+    const result = await submitWallEntry({
+      app: "123",
+      dryRun: true,
+      fetch: fetchMock,
+      gh,
+      now: new Date("2026-06-01T12:00:00.000Z"),
+    });
+
+    expect(result).toMatchObject({
+      mode: "dry-run",
+      appId: "123",
+      app: "Preview App",
+      changedFiles: ["docs/wall-of-apps.json", "README.md"],
+      pullRequestTitle: "Add Preview App to Wall of Apps",
+    });
+    expect(result.branch).toBe("wall/add-123-20260601T120000z");
+    expect(gh).not.toHaveBeenCalled();
+  });
+
+  it("confirmed submit updates only the allowed files before opening a PR", async () => {
+    const ghCalls: string[][] = [];
+    const gh = vi.fn(async (args: string[]) => {
+      ghCalls.push(args);
+      const joined = args.join(" ");
+      if (joined === "api user --jq .login") return "tester\n";
+      if (joined === "repo view tester/ShipPilot --json nameWithOwner --jq .nameWithOwner") return "tester/ShipPilot\n";
+      if (joined === "api repos/mahmoudashraf93/ShipPilot/git/ref/heads/main --jq .object.sha") return "basesha\n";
+      if (joined.startsWith("api -X POST repos/tester/ShipPilot/git/refs")) return "{}";
+      if (
+        joined ===
+        "api repos/mahmoudashraf93/ShipPilot/contents/docs/wall-of-apps.json --method GET -f ref=main --jq .sha"
+      ) {
+        return "wallsha\n";
+      }
+      if (joined === "api repos/mahmoudashraf93/ShipPilot/contents/README.md --method GET -f ref=main --jq .sha") {
+        return "readmesha\n";
+      }
+      if (joined.startsWith("api -X PUT repos/tester/ShipPilot/contents/docs/wall-of-apps.json")) return "{}";
+      if (joined.startsWith("api -X PUT repos/tester/ShipPilot/contents/README.md")) return "{}";
+      if (joined.startsWith("pr create --repo mahmoudashraf93/ShipPilot")) {
+        return "https://github.com/mahmoudashraf93/ShipPilot/pull/1\n";
+      }
+      throw new Error(`unexpected gh call: ${joined}`);
+    });
+    const fetchMock = vi.fn(async (input: URL | RequestInfo) => {
+      const url = String(input);
+      if (url.endsWith("/docs/wall-of-apps.json")) return new Response("[]");
+      if (url.endsWith("/README.md")) return new Response(readmeWithMarkers);
+      return new Response("not found", { status: 404 });
+    });
+
+    const result = await submitWallEntry({
+      name: "Confirmed App",
+      link: "https://example.com/confirmed",
+      icon: "https://example.com/confirmed.png",
+      confirm: true,
+      fetch: fetchMock,
+      gh,
+      now: new Date("2026-06-01T12:00:00.000Z"),
+    });
+
+    expect(result.pullRequestUrl).toBe("https://github.com/mahmoudashraf93/ShipPilot/pull/1");
+    const putTargets = ghCalls
+      .filter((args) => args[0] === "api" && args[1] === "-X" && args[2] === "PUT")
+      .map((args) => args[3]);
+    expect(putTargets).toEqual([
+      "repos/tester/ShipPilot/contents/docs/wall-of-apps.json",
+      "repos/tester/ShipPilot/contents/README.md",
+    ]);
+    expect(ghCalls.flat()).not.toContain("git");
+  });
+
+  it("does not build confirmed submissions from local files when upstream fetch fails", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "shippilot-wall-confirm-"));
+    const fetchMock = vi.fn(async () => new Response("not found", { status: 404, statusText: "Not Found" }));
+
+    await expect(
+      submitWallEntry({
+        name: "Confirmed App",
+        link: "https://example.com/confirmed",
+        icon: "https://example.com/confirmed.png",
+        confirm: true,
+        cwd: dir,
+        fetch: fetchMock,
+      }),
+    ).rejects.toThrow(/Failed to fetch/);
+  });
+
+  it("requires confirm unless dry-run is set", async () => {
+    await expect(submitWallEntry({ name: "Manual", link: "https://example.com", icon: "https://example.com/i.png" }))
+      .rejects.toThrow(/--confirm/);
+  });
+
+  it("requires full manual entry details", async () => {
+    await expect(submitWallEntry({ name: "Manual", link: "https://example.com", dryRun: true })).rejects.toThrow(
+      /--name, --link, and --icon/,
+    );
+    await expect(
+      submitWallEntry({ name: "   ", link: "https://example.com", icon: "https://example.com/i.png", dryRun: true }),
+    ).rejects.toThrow(/--name, --link, and --icon/);
   });
 });
