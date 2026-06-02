@@ -562,7 +562,9 @@ ${wallEndMarker}
 
     expect(rendered).toContain(wallStartMarker);
     expect(rendered).toContain(wallEndMarker);
-    expect(rendered).toContain("Alpha App");
+    expect(rendered).toContain('alt="Alpha App icon"');
+    expect(rendered).toContain('title="Alpha App"');
+    expect(rendered).not.toContain("<br>Alpha App");
     expect(rendered).toContain("<table>");
     expect(rendered).not.toContain("old content");
   });
